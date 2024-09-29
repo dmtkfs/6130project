@@ -1,0 +1,23 @@
+# Configuration files with sensitive information
+ids/config.py
+.env
+
+# Logs
+logs/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+
+# IDE/editor settings
+.vscode/
+.idea/
+
+# Docker-related files
+*.pid
+*.tmp
