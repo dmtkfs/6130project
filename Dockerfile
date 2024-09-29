@@ -2,16 +2,16 @@
 FROM alpine:latest
 
 # Install Python, pip, Supervisor, and required Python packages
-RUN apk update && \\
-    apk add --no-cache \\
-    python3 \\
-    py3-pip \\
-    supervisor \\
-    procps \\
-    coreutils \\
-    py3-psutil \\
-    py3-watchdog \\
-    openssh \\
+RUN apk update && \
+    apk add --no-cache \
+    python3 \
+    py3-pip \
+    supervisor \
+    procps \
+    coreutils \
+    py3-psutil \
+    py3-watchdog \
+    openssh \
     shadow
 
 # Create a non-root user and group
