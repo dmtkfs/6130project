@@ -28,6 +28,9 @@ COPY supervisord.conf /etc/supervisord.conf
 # Create the Supervisor log directory
 RUN mkdir -p /var/log/supervisor
 
+# Create the directory for IDS logs
+RUN mkdir -p /var/log/ids_app
+
 # Install and configure SSH
 RUN mkdir /var/run/sshd && \
     echo 'root:Docker!' | chpasswd && \
