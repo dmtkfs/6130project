@@ -29,11 +29,11 @@ COPY supervisord.conf /etc/supervisord.conf
 RUN mkdir -p /var/log/supervisor
 
 # Install and configure SSH
-RUN mkdir /var/run/sshd && \\
-    echo 'root:Docker!' | chpasswd && \\
-    sed -i 's/#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config && \\
-    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \\
-    ssh-keygen -A && \\
+RUN mkdir /var/run/sshd && \
+    echo 'root:Docker!' | chpasswd && \
+    sed -i 's/#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+    ssh-keygen -A && \
     echo "export VISIBLE=now" >> /etc/profile
 
 # Set permissions for the main script
