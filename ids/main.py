@@ -3,6 +3,7 @@
 import logging
 import logging.config
 import threading
+import time
 from ids.alerts.email_alert import EmailAlert
 from ids.alerts.log_alert import LogAlert
 from ids.modules.process_monitor import ProcessMonitor
@@ -14,8 +15,10 @@ from ids.config import LOGGING_CONFIG
 # Configure logging using dictConfig
 logging.config.dictConfig(LOGGING_CONFIG)
 
+
 def main():
-    logging.info("IDS initialized.")
+    start_time = time.strftime("%Y-%m-%d %H:%M:%S")
+    logging.info(f"IDS initialized at {start_time}.")
 
     # Initialize alert mechanisms
     alerts = [EmailAlert(), LogAlert()]
@@ -24,7 +27,9 @@ def main():
     process_monitor = ProcessMonitor(alerts=alerts)
     ssh_monitor = SSHMonitor(alerts=alerts)
     file_system_monitor = FileSystemMonitor(alerts=alerts)
-    container_escape_monitor = ContainerEscapeMonitor(alerts=alerts, log_file_path='/host_var_log/auth.log')
+    container_escape_monitor = ContainerEscapeMonitor(
+        alerts=alerts, log_file_path="/host_var_log/auth.log"
+    )
 
     # Start monitoring threads
     threads = []
@@ -45,9 +50,11 @@ def main():
     t_container_escape_monitor.start()
     threads.append(t_container_escape_monitor)
 
+    logging.info(f"All monitoring services started at {start_time}.")
+
     for t in threads:
         t.join()
 
+
 if __name__ == "__main__":
     main()
-
