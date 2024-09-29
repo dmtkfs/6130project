@@ -1,7 +1,7 @@
 Key Components:
 
 1. Containerized IDS Application:
-    a. The IDS is containerized in an Alpine-based Docker image.
+    a. The IDS is containerized in an Alpine-based Docker image..
     b. Key functionalities of the IDS so far include:
         i. Monitoring system processes.
         ii. Detecting container escapes (problematic for now).
