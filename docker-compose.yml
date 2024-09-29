@@ -1,0 +1,18 @@
+services:
+  secure_ids:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: secure_container_refactored
+    # container_name: secure_container_refactored  # Optional: Removed to avoid naming conflicts
+    volumes:
+      - /var/log/auth.log:/host_var_log/auth.log:ro
+    restart: unless-stopped
+    environment:
+      EMAIL_ENABLED: ${EMAIL_ENABLED}
+      SMTP_SERVER: ${SMTP_SERVER}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      EMAIL_FROM: ${EMAIL_FROM}
+      EMAIL_TO: ${EMAIL_TO}
