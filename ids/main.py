@@ -24,7 +24,7 @@ def main():
     process_monitor = ProcessMonitor(alerts=alerts)
     ssh_monitor = SSHMonitor(alerts=alerts)
     file_system_monitor = FileSystemMonitor(alerts=alerts)
-    container_escape_monitor = ContainerEscapeMonitor(alerts=alerts)
+    container_escape_monitor = ContainerEscapeMonitor(alerts=alerts, log_file_path='/host_var_log/auth.log')
 
     # Start monitoring threads
     threads = []
@@ -50,3 +50,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
