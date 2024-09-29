@@ -43,4 +43,4 @@ RUN chmod +x /ids_app/ids/main.py
 EXPOSE 22222
 
 # Start Supervisor and SSHD
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf", "-n"] && /usr/sbin/sshd -D
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf", "-n"]
