@@ -24,6 +24,7 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD}
       EMAIL_FROM: ${EMAIL_FROM}
       EMAIL_TO: ${EMAIL_TO}
+      IDS_USER_PASSWORD: ${IDS_USER_PASSWORD}
       LOG_FILE_PATH: "/var/log/ids_app/ids.log"
 
 volumes:
