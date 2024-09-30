@@ -23,4 +23,4 @@ services:
       EMAIL_FROM: ${EMAIL_FROM}
       EMAIL_TO: ${EMAIL_TO}
       IDS_USER_PASSWORD: ${IDS_USER_PASSWORD}
-      LOG_FILE_PATH: "/host_var_log/auth.log" # Passing the log path as an environment variable
+      LOG_FILE_PATH: "/var/log/ids_app/ids.log" # Use your own log file for writing logs
