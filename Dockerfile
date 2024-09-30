@@ -19,8 +19,7 @@ RUN apk update && \
 # Create a group and user for the IDS application
 RUN addgroup -g 1000 ids_group && \
     adduser -S ids_user -G ids_group -u 1001 && \
-    chsh -s /bin/sh ids_user && \
-    echo "ids_user:${IDS_USER_PASSWORD}" | chpasswd
+    chsh -s /bin/sh ids_user
 
 # Set working directory
 WORKDIR /ids_app
@@ -51,6 +50,8 @@ RUN sed -i 's/#Port 22/Port 22222/' /etc/ssh/sshd_config && \
     sed -i 's/#PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
     echo 'AllowUsers ids_user' >> /etc/ssh/sshd_config
 
+# Set environment variable for the user password
+ENV IDS_USER_PASSWORD=${IDS_USER_PASSWORD}
 
 # Set Entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
