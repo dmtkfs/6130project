@@ -23,7 +23,7 @@ RUN adduser -S ids_user -G adm || true && \
     chsh -s /bin/sh ids_user
 
 # Set PS1 for all users via /etc/profile.d
-RUN echo 'export PS1="docker_container@\${AZURE_PUBLIC_IP}:\\w\\$ "' > /etc/profile.d/custom_prompt.sh && \
+RUN echo 'export PS1="docker_container@${AZURE_PUBLIC_IP}:\\w\\$ "' > /etc/profile.d/custom_prompt.sh && \
     chmod +x /etc/profile.d/custom_prompt.sh
 
 # Set the working directory
