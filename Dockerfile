@@ -21,8 +21,7 @@ ARG IDS_USER_PASSWORD
 RUN addgroup -S adm || true && \
     adduser -S ids_user -G adm || true && \
     echo "ids_user:$IDS_USER_PASSWORD" | chpasswd \
-    # Set the shell for ids_user
-    chsh -s /bin/sh ids_user 
+    chsh -s /bin/sh ids_user  # Set the shell for ids_user
 
 # Set the working directory
 WORKDIR /ids_app
