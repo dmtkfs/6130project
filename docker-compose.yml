@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   sec_app:
     build:
@@ -11,7 +13,8 @@ services:
       - "22222:22" # Map host port 22222 to container port 22
     volumes:
       - /var/log/auth.log:/host_var_log/auth.log:ro
-      - ./6130project_logs/:/var/log/ids_app/ # Ensuring logs are written to a folder
+      - ids_app_logs:/var/log/ids_app/ # Use a named volume for ids_app logs
+      - supervisor_logs:/var/log/supervisor/ # Use a named volume for supervisor logs
     restart: unless-stopped
     env_file:
       - .env
@@ -24,4 +27,8 @@ services:
       EMAIL_FROM: ${EMAIL_FROM}
       EMAIL_TO: ${EMAIL_TO}
       IDS_USER_PASSWORD: ${IDS_USER_PASSWORD}
-      LOG_FILE_PATH: "/var/log/ids_app/ids.log" # Use your own log file for writing logs
+      LOG_FILE_PATH: "/var/log/ids_app/ids.log" # Use your own log file for writing logs 
+
+volumes:
+  ids_app_logs:
+  supervisor_logs:
