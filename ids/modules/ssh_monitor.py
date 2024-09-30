@@ -10,9 +10,14 @@ import getpass  # To capture user details
 class SSHMonitor:
     def __init__(self, alerts):
         self.alerts = alerts
-        # Removed host_log_file_path as it's no longer monitored
+        self.host_log_file_path = os.getenv(
+            "HOST_SSH_LOG_FILE_PATH", "/host_var_log/auth.log"
+        )
         self.container_ssh_log_file_path = os.getenv(
             "CONTAINER_SSH_LOG_FILE_PATH", "/var/log/supervisor/sshd_stdout.log"
+        )
+        logging.info(
+            f"SSHMonitor initialized with host log file path: {self.host_log_file_path}"
         )
         logging.info(
             f"SSHMonitor initialized with container SSH log file path: {self.container_ssh_log_file_path}"
@@ -20,7 +25,8 @@ class SSHMonitor:
 
     def start(self):
         try:
-            # Only monitor container SSH logs
+            # Start monitoring both host and container SSH logs
+            self.monitor_log_file(self.host_log_file_path, "Host")
             self.monitor_log_file(self.container_ssh_log_file_path, "Container")
         except Exception as e:
             logging.error(f"Error in SSHMonitor: {e}")
