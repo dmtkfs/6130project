@@ -20,7 +20,6 @@ ARG IDS_USER_PASSWORD
 # Create a non-root user and group, and set a valid shell
 RUN adduser -S ids_user -G adm || true && \
     echo "ids_user:$IDS_USER_PASSWORD" | chpasswd && \
-    chsh -s /bin/sh ids_user \
     echo 'export PS1="docker_container:\\w\\$ "' >> /home/ids_user/.profile
 
 # Set the working directory
