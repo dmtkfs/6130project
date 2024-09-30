@@ -7,6 +7,8 @@ services:
         IDS_USER_PASSWORD: ${IDS_USER_PASSWORD}
         AZURE_PUBLIC_IP: ${AZURE_PUBLIC_IP} # Pass the Azure public IP as a build argument
     image: secure_container_refactored
+    env_file:
+      - .env
     ports:
       - "22222:22" # Map host port 22222 to container port 22
     volumes:
