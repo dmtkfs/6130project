@@ -17,9 +17,9 @@ class ContainerEscapeMonitor:
             "unauthorized access",
         ]
         # Capture the user who started the monitoring
-        current_user = getpass.getuser()
+        self.current_user = getpass.getuser()
         logging.info(
-            f"ContainerEscapeMonitor initialized with log file path: {self.log_file_path} by user: {current_user}"
+            f"ContainerEscapeMonitor initialized with log file path: {self.log_file_path} by user: {self.current_user}"
         )
 
     def start(self):
@@ -53,15 +53,11 @@ class ContainerEscapeMonitor:
 
     def process_log_line(self, line):
         logging.debug(f"Processing log line: {line.strip()}")
-        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-        current_user = getpass.getuser()  # Track who is running this
         # Check for suspicious keywords in the log line
         if any(keyword in line.lower() for keyword in self.suspicious_keywords):
-            message = f"{timestamp} - User: {current_user} - Suspicious activity detected in logs: {line.strip()}"
+            timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+            message = f"{timestamp} - User: {self.current_user} - Suspicious activity detected: {line.strip()}"
+            # Send alerts for suspicious activity
             for alert in self.alerts:
                 alert.send_alert("Container Escape Attempt", message)
             logging.warning(message)
-
-    def add_suspicious_keyword(self, keyword):
-        self.suspicious_keywords.append(keyword)
-        logging.info(f"Added new suspicious keyword for monitoring: {keyword}")

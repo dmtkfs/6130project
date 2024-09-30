@@ -1,5 +1,3 @@
-# ids/modules/process_monitor.py
-
 import psutil
 import time
 import logging
@@ -18,11 +16,16 @@ class ProcessMonitor:
         self.alerts = alerts
         self.poll_interval = poll_interval
         self.known_pids = set()
+
         # Retrieve the log file path from environment variable or use default
         self.log_file_path = os.getenv("LOG_FILE_PATH", "/host_var_log/auth.log")
+
         logging.info(
             f"ProcessMonitor initialized with log file path: {self.log_file_path}"
         )
+
+        # Define important processes to filter (you can adjust this list)
+        self.important_processes = ["sshd", "bash", "python", "docker", "containerd"]
 
     def start(self):
         """
@@ -41,6 +44,9 @@ class ProcessMonitor:
                     for pid in new_pids:
                         try:
                             proc = psutil.Process(pid)
+                            if proc.name() not in self.important_processes:
+                                continue  # Ignore unimportant processes
+
                             timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
                             current_user = (
                                 getpass.getuser()
@@ -51,7 +57,8 @@ class ProcessMonitor:
                                 f"Cmdline={' '.join(proc.cmdline())}"
                             )
                             logging.info(process_info)
-                            # Trigger alerts
+
+                            # Trigger alerts only for important processes
                             for alert in self.alerts:
                                 alert.send_alert("New Process Detected", process_info)
                         except (psutil.NoSuchProcess, psutil.AccessDenied) as e:

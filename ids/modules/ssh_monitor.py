@@ -11,11 +11,19 @@ import getpass  # To capture user details
 
 class SSHMonitor:
     def __init__(self, alerts):
+        """
+        Initialize SSHMonitor with alert systems and log file path.
+
+        :param alerts: List of alert instances to notify upon detecting SSH login attempts.
+        """
         self.alerts = alerts
         # Retrieve the log file path from environment variable or use default
         self.auth_log_path = os.getenv("LOG_FILE_PATH", "/host_var_log/auth.log")
         self.failed_attempts = defaultdict(int)
-        logging.info(f"SSHMonitor initialized with log file path: {self.auth_log_path}")
+        current_user = getpass.getuser()  # Get the current user
+        logging.info(
+            f"SSHMonitor initialized with log file path: {self.auth_log_path} by user: {current_user}"
+        )
 
     def start(self):
         """
@@ -28,6 +36,7 @@ class SSHMonitor:
 
             with open(self.auth_log_path, "r") as file:
                 file.seek(0, os.SEEK_END)
+                logging.info(f"Monitoring SSH auth logs: {self.auth_log_path}")
                 while True:
                     line = file.readline()
                     if not line:
