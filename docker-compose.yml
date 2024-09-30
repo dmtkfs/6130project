@@ -1,5 +1,5 @@
 services:
-  secure_ids:
+  sec_app:
     build:
       context: .
       dockerfile: Dockerfile
