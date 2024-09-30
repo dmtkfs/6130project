@@ -9,5 +9,10 @@ mkdir -p /var/log/supervisor
 chown -R ids_user:ids_group /var/log/ids_app /var/log/supervisor
 chmod -R 750 /var/log/ids_app /var/log/supervisor
 
+# Set the password for ids_user if provided
+if [ -n "$IDS_USER_PASSWORD" ]; then
+    echo "ids_user:${IDS_USER_PASSWORD}" | chpasswd
+fi
+
 # Execute the main process
 exec "$@"

@@ -17,7 +17,6 @@ RUN apk update && \
 # Create a unique group and user with fixed UID and GID
 RUN addgroup -g 1000 ids_group && \
     adduser -S ids_user -G ids_group -u 1000 && \
-    echo "ids_user:${IDS_USER_PASSWORD}" | chpasswd && \
     chsh -s /bin/sh ids_user && \
     echo 'export PS1="docker_container:\\w\\$ "' >> /home/ids_user/.profile
 
