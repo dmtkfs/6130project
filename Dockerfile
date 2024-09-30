@@ -21,7 +21,7 @@ ARG IDS_USER_PASSWORD
 RUN adduser -S ids_user -G adm || true && \
     echo "ids_user:$IDS_USER_PASSWORD" | chpasswd && \
     chsh -s /bin/sh ids_user && \
-    echo 'source /etc/profile && export PS1="docker_container@$AZURE_PUBLIC_IP:\\w\\$ "' >> /home/ids_user/.profile
+    echo 'if [ -f /ids_app/.env ]; then export $(grep -v "^#" /ids_app/.env | xargs); fi && export PS1="docker_container@$AZURE_PUBLIC_IP:\\w\\$ "' >> /home/ids_user/.profile
 
 # Set the working directory
 WORKDIR /ids_app
