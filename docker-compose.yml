@@ -5,7 +5,6 @@ services:
       dockerfile: Dockerfile
       args:
         IDS_USER_PASSWORD: ${IDS_USER_PASSWORD}
-        AZURE_PUBLIC_IP: ${AZURE_PUBLIC_IP} # Pass the Azure public IP as a build argument
     image: secure_container_refactored
     env_file:
       - .env
