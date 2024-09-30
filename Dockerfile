@@ -18,7 +18,7 @@ RUN apk update && \
 
 # Create a group and user for the IDS application
 RUN addgroup -g 1000 ids_group && \
-    adduser -S ids_user -G ids_group -u 1000 && \
+    adduser -S ids_user -G ids_group -u 1001 && \
     chsh -s /bin/sh ids_user
 
 # Set working directory
@@ -40,6 +40,9 @@ RUN chmod +x /entrypoint.sh
 RUN mkdir -p /var/log/supervisor /var/log/ids_app /var/run/sshd && \
     chown -R root:root /var/log/supervisor && \
     chown -R ids_user:ids_group /var/log/ids_app
+
+# Expose SSH port
+EXPOSE 22222
 
 # Set Entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
