@@ -16,43 +16,33 @@ RUN apk update && \
     openssh \
     shadow
 
-# Create a unique group and user with fixed UID and GID
+# Create a group and user for the IDS application
 RUN addgroup -g 1000 ids_group && \
     adduser -S ids_user -G ids_group -u 1000 && \
-    chsh -s /bin/sh ids_user && \
-    echo 'export PS1="docker_container:\\w\\$ "' >> /home/ids_user/.profile
+    chsh -s /bin/sh ids_user
 
-# Set the working directory
+# Set working directory
 WORKDIR /ids_app
 
-# Copy the application files
+# Copy IDS application code
 COPY ids/ /ids_app/ids/
+
+# Copy Supervisord configuration
 COPY supervisord.conf /etc/supervisord.conf
 
-# Copy the entrypoint script and make it executable
+# Copy Entrypoint script
 COPY entrypoint.sh /entrypoint.sh
+
+# Ensure Entrypoint script is executable
 RUN chmod +x /entrypoint.sh
 
-# Create directories for logs and change ownership appropriately
+# Create log directories and set permissions
 RUN mkdir -p /var/log/supervisor /var/log/ids_app /var/run/sshd && \
     chown -R root:root /var/log/supervisor && \
     chown -R ids_user:ids_group /var/log/ids_app
 
-# Install and configure SSH
-RUN echo 'root:Docker!' | chpasswd && \
-    sed -i 's/#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config && \
-    sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
-    ssh-keygen -A && \
-    echo "export VISIBLE=now" >> /etc/profile
-
-# Run as root to allow Supervisor to drop privileges as needed
-USER root
-
-# Expose the SSH port
-EXPOSE 22222
-
-# Set the entrypoint
+# Set Entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
 
-# Start Supervisor and SSHD
+# No CMD needed since Entrypoint handles Supervisord
 CMD []
