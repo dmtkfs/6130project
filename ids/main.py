@@ -38,7 +38,10 @@ def main():
         logging.info(f"IDS initialized at {start_time} by user: {current_user}")
 
         # Initialize alert mechanisms
-        alerts = [EmailAlert(), LogAlert()]
+        alerts = [
+            EmailAlert(rate_limit=5, rate_period=300, aggregate_interval=600),
+            LogAlert(),
+        ]
 
         # Initialize monitors
         process_monitor = ProcessMonitor(alerts=alerts)
