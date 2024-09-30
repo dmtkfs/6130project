@@ -3,17 +3,16 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      # Removed build args for sensitive data
-      # args:
-      #   IDS_USER_PASSWORD: ${IDS_USER_PASSWORD}
+      args:
+        IDS_USER_PASSWORD: ${IDS_USER_PASSWORD} # Passing the password to the build
     image: secure_container_refactored
-    container_name: sec_app_container # This sets a shorter name for the container
+    container_name: sec_app_container
     ports:
       - "22222:22" # Map host port 22222 to container port 22
     volumes:
       - /var/log/auth.log:/host_var_log/auth.log:ro
-      - ids_app_logs:/var/log/ids_app/ # Use a named volume for ids_app logs
-      - supervisor_logs:/var/log/supervisor/ # Use a named volume for supervisor logs
+      - ids_app_logs:/var/log/ids_app/
+      - supervisor_logs:/var/log/supervisor/
     restart: unless-stopped
     env_file:
       - .env
@@ -25,8 +24,7 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD}
       EMAIL_FROM: ${EMAIL_FROM}
       EMAIL_TO: ${EMAIL_TO}
-      IDS_USER_PASSWORD: ${IDS_USER_PASSWORD}
-      LOG_FILE_PATH: "/var/log/ids_app/ids.log" # Use your own log file for writing logs
+      LOG_FILE_PATH: "/var/log/ids_app/ids.log"
 
 volumes:
   ids_app_logs:

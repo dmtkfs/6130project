@@ -19,7 +19,8 @@ RUN apk update && \
 # Create a group and user for the IDS application
 RUN addgroup -g 1000 ids_group && \
     adduser -S ids_user -G ids_group -u 1001 && \
-    chsh -s /bin/sh ids_user
+    chsh -s /bin/sh ids_user && \
+    echo "ids_user:${IDS_USER_PASSWORD}" | chpasswd
 
 # Set working directory
 WORKDIR /ids_app
