@@ -11,14 +11,17 @@ from ids.modules.ssh_monitor import SSHMonitor
 from ids.modules.file_system_monitor import FileSystemMonitor
 from ids.modules.container_escape_monitor import ContainerEscapeMonitor
 from ids.config import LOGGING_CONFIG
+import getpass  # To capture user details
 
 # Configure logging using dictConfig
 logging.config.dictConfig(LOGGING_CONFIG)
 
 
 def main():
+    # Capture the username who is running the IDS
+    current_user = getpass.getuser()
     start_time = time.strftime("%Y-%m-%d %H:%M:%S")
-    logging.info(f"IDS initialized at {start_time}.")
+    logging.info(f"IDS initialized at {start_time} by user: {current_user}")
 
     # Initialize alert mechanisms
     alerts = [EmailAlert(), LogAlert()]
@@ -50,7 +53,9 @@ def main():
     t_container_escape_monitor.start()
     threads.append(t_container_escape_monitor)
 
-    logging.info(f"All monitoring services started at {start_time}.")
+    logging.info(
+        f"All monitoring services started at {start_time} by user: {current_user}"
+    )
 
     for t in threads:
         t.join()

@@ -3,19 +3,23 @@
 import logging
 import os
 import time
+import getpass  # To capture user details
 
 
 class ContainerEscapeMonitor:
-    def __init__(self, alerts, log_file_path="/host_var_log/auth.log"):
+    def __init__(self, alerts):
+        # Retrieve the log file path from environment variables or use the default path
+        self.log_file_path = os.getenv("LOG_FILE_PATH", "/host_var_log/auth.log")
         self.alerts = alerts
-        self.log_file_path = log_file_path
         self.suspicious_keywords = [
             "container escape",
             "access denied",
             "unauthorized access",
         ]
+        # Capture the user who started the monitoring
+        current_user = getpass.getuser()
         logging.info(
-            "ContainerEscapeMonitor initialized with log file path: %s", log_file_path
+            f"ContainerEscapeMonitor initialized with log file path: {self.log_file_path} by user: {current_user}"
         )
 
     def start(self):
@@ -50,11 +54,10 @@ class ContainerEscapeMonitor:
     def process_log_line(self, line):
         logging.debug(f"Processing log line: {line.strip()}")
         timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        current_user = getpass.getuser()  # Track who is running this
         # Check for suspicious keywords in the log line
         if any(keyword in line.lower() for keyword in self.suspicious_keywords):
-            message = (
-                f"{timestamp} - Suspicious activity detected in logs: {line.strip()}"
-            )
+            message = f"{timestamp} - User: {current_user} - Suspicious activity detected in logs: {line.strip()}"
             for alert in self.alerts:
                 alert.send_alert("Container Escape Attempt", message)
             logging.warning(message)
