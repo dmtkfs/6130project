@@ -14,11 +14,12 @@ RUN apk update && \
     openssh \
     shadow
 
-# Declaring a build argument for the password
+# Declare a build argument for the password
 ARG IDS_USER_PASSWORD
 
-# Create a non-root user and group, and set a valid shell
-RUN adduser -S ids_user -G adm || true && \
+# Create a non-root user and group with fixed UID and GID
+RUN addgroup -g 1000 adm && \
+    adduser -S ids_user -G adm -u 1000 && \
     echo "ids_user:$IDS_USER_PASSWORD" | chpasswd && \
     chsh -s /bin/sh ids_user && \
     echo 'export PS1="docker_container:\\w\\$ "' >> /home/ids_user/.profile
@@ -29,6 +30,10 @@ WORKDIR /ids_app
 # Copy the application files
 COPY ids/ /ids_app/ids/
 COPY supervisord.conf /etc/supervisord.conf
+
+# Copy the entrypoint script and make it executable
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # Create directories for logs and change ownership to ids_user
 RUN mkdir -p /var/log/supervisor /var/log/ids_app /var/run/sshd && \
@@ -46,6 +51,9 @@ USER root
 
 # Expose the SSH port
 EXPOSE 22222
+
+# Set the entrypoint
+ENTRYPOINT ["/entrypoint.sh"]
 
 # Start Supervisor and SSHD
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf", "-n"]
