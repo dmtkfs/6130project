@@ -18,9 +18,8 @@ RUN apk update && \
 ARG IDS_USER_PASSWORD
 
 # Create a non-root user and group, and set password from environment variable
-RUN addgroup -S adm || true && \
-    adduser -S ids_user -G adm || true && \
-    echo "ids_user:$IDS_USER_PASSWORD" | chpasswd \
+RUN adduser -S ids_user -G adm || true && \
+    echo "ids_user:$IDS_USER_PASSWORD" | chpasswd && \
     chsh -s /bin/sh ids_user  # Set the shell for ids_user
 
 # Set the working directory
