@@ -1,6 +1,9 @@
 #!/bin/sh
 set -e
 
+# Start Supervisord
+exec supervisord -c /etc/supervisord.conf
+
 # Ensure the log directories exist
 mkdir -p /var/log/ids_app
 mkdir -p /var/log/supervisor
