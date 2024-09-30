@@ -14,9 +14,10 @@ RUN apk update && \
     openssh \
     shadow
 
-# Create a non-root user and group
+# Create a non-root user and group, and set password from environment variable
 RUN addgroup -S adm || true && \
-    adduser -S ids_user -G adm || true
+    adduser -S ids_user -G adm || true && \
+    echo "ids_user:$IDS_USER_PASSWORD" | chpasswd
 
 # Set the working directory
 WORKDIR /ids_app
