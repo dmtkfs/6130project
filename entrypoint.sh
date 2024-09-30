@@ -13,4 +13,4 @@ chown -R root:root /var/log/supervisor
 ssh-keygen -A
 
 # Start Supervisord
-exec supervisord -c /etc/supervisord.conf
+exec /usr/bin/supervisord -c /etc/supervisord.conf
