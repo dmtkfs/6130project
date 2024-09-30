@@ -10,6 +10,9 @@ services:
     volumes:
       - /var/log/auth.log:/host_var_log/auth.log:ro
     restart: unless-stopped
+    env_file:
+      # Added this to specify the .env file
+      - .env
     environment:
       EMAIL_ENABLED: ${EMAIL_ENABLED}
       SMTP_SERVER: ${SMTP_SERVER}
@@ -18,3 +21,4 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD}
       EMAIL_FROM: ${EMAIL_FROM}
       EMAIL_TO: ${EMAIL_TO}
+      IDS_USER_PASSWORD: ${IDS_USER_PASSWORD}
