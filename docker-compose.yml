@@ -26,8 +26,10 @@ services:
       EMAIL_FROM: ${EMAIL_FROM}
       EMAIL_TO: ${EMAIL_TO}
       IDS_USER_PASSWORD: ${IDS_USER_PASSWORD}
-      LOG_FILE_PATH: "/var/log/ids_app/ids.log" # Use your own log file for writing logs 
+      LOG_FILE_PATH: "/var/log/ids_app/ids.log" # Use your own log file for writing logs
 
 volumes:
   ids_app_logs:
   supervisor_logs:
+
+
