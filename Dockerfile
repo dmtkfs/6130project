@@ -33,9 +33,10 @@ COPY supervisord.conf /etc/supervisord.conf
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Create directories for logs and change ownership to ids_user
+# Create directories for logs and change ownership appropriately
 RUN mkdir -p /var/log/supervisor /var/log/ids_app /var/run/sshd && \
-    chown -R ids_user:ids_group /var/log/ids_app /var/log/supervisor
+    chown -R root:root /var/log/supervisor && \
+    chown -R ids_user:ids_group /var/log/ids_app
 
 # Install and configure SSH
 RUN echo 'root:Docker!' | chpasswd && \
@@ -54,4 +55,4 @@ EXPOSE 22222
 ENTRYPOINT ["/entrypoint.sh"]
 
 # Start Supervisor and SSHD
-CMD ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf", "-n"]
+CMD []
