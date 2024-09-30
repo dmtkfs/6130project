@@ -22,6 +22,9 @@ RUN adduser -S ids_user -G adm || true && \
     echo "ids_user:$IDS_USER_PASSWORD" | chpasswd && \
     chsh -s /bin/sh ids_user  # Set the shell for ids_user
 
+# Set a custom shell prompt for ids_user with Azure server IP
+RUN echo 'export PS1="docker_container@$(curl -s http://checkip.amazonaws.com):\\w\\$ "' >> /home/ids_user/.profile
+
 # Set the working directory
 WORKDIR /ids_app
 
