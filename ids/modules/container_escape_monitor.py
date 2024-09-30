@@ -1,54 +1,62 @@
 import logging
 import os
 import time
-import psutil  # To monitor processes
 import getpass
 
 
 class ContainerEscapeMonitor:
     def __init__(self, alerts):
-        self.alerts = alerts
-        self.host_log_file_path = os.getenv(
-            "HOST_LOG_FILE_PATH", "/var/log/auth.log"
-        )  # Path to host logs
         self.container_log_file_path = os.getenv(
-            "CONTAINER_LOG_FILE_PATH", "/var/log/ids_app/ids.log"
-        )  # Path to container logs
-        self.monitored_commands = [
-            "docker",
-            "nsenter",
-            "chroot",
-        ]  # Commands that indicate escape attempts
-        logging.info(f"ContainerEscapeMonitor initialized.")
+            "LOG_FILE_PATH", "/var/log/ids_app/ids.log"
+        )  # Updated log path
+        self.host_log_file_path = os.getenv("HOST_LOG_FILE_PATH", "/var/log/auth.log")
+        self.alerts = alerts
+        logging.info(
+            f"ContainerEscapeMonitor initialized with log file path: {self.container_log_file_path}"
+        )
 
     def start(self):
         logging.info("Starting ContainerEscapeMonitor")
-        self.monitor_processes()
+        threading.Thread(
+            target=self.monitor_escape_attempts,
+            args=(self.container_log_file_path, "Container"),
+        ).start()
+        threading.Thread(
+            target=self.monitor_escape_attempts, args=(self.host_log_file_path, "Host")
+        ).start()
 
-    def monitor_processes(self):
-        """
-        Monitor container processes for escape attempts based on privileged commands.
-        """
-        logging.info("Monitoring processes for potential container escape attempts.")
-        try:
-            while True:
-                for proc in psutil.process_iter(["pid", "name", "cmdline"]):
-                    try:
-                        cmdline = " ".join(proc.info["cmdline"])
-                        if any(
-                            command in cmdline for command in self.monitored_commands
-                        ):
-                            timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-                            current_user = getpass.getuser()
-                            message = f"{timestamp} - User: {current_user} - Container escape attempt detected: {cmdline}"
-                            logging.warning(message)
-                            # Send an alert
-                            for alert in self.alerts:
-                                alert.send_alert(
-                                    "Container Escape Attempt Detected", message
-                                )
-                    except (psutil.NoSuchProcess, psutil.AccessDenied):
-                        continue
-                time.sleep(1)  # Check every second
-        except Exception as e:
-            logging.error(f"Error in monitoring processes: {e}")
+    def monitor_escape_attempts(self, log_path, source):
+        retries = 0
+        max_retries = 5
+        while retries < max_retries:
+            try:
+                with open(log_path, "r") as log_file:
+                    log_file.seek(0, os.SEEK_END)  # Move to the end of the file
+                    logging.info(
+                        f"Monitoring {source} log file for container escape attempts: {log_path}"
+                    )
+                    while True:
+                        line = log_file.readline()
+                        if not line:
+                            time.sleep(1)
+                            continue
+                        self.process_log_line(line, source)
+            except FileNotFoundError:
+                logging.error(f"Log file not found: {log_path}. Retrying...")
+                retries += 1
+                time.sleep(5)
+            except Exception as e:
+                logging.error(f"Error monitoring container escape logs: {e}")
+                retries += 1
+                time.sleep(5)
+
+    def process_log_line(self, line, source):
+        logging.debug(f"Processing {source} log line: {line.strip()}")
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        current_user = getpass.getuser()
+
+        if "detected container escape" in line.lower():
+            message = f"{timestamp} - User: {current_user} - Suspicious activity detected in {source}: {line.strip()}"
+            for alert in self.alerts:
+                alert.send_alert("Container Escape Attempt", message)
+            logging.warning(message)

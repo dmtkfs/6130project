@@ -1,5 +1,3 @@
-# ids/main.py
-
 import logging
 import logging.config
 import threading

@@ -8,14 +8,13 @@ import getpass  # To capture user details
 
 
 class FileSystemEventHandlerExtended(FileSystemEventHandler):
-    def __init__(self, critical_paths, excluded_dirs, alerts, log_source):
+    def __init__(self, critical_paths, excluded_dirs, alerts):
         self.alerts = alerts
         self.critical_paths = critical_paths
         self.normalized_critical_paths = [
             os.path.realpath(path) for path in critical_paths
         ]
         self.excluded_dirs = [os.path.realpath(path) for path in excluded_dirs]
-        self.log_source = log_source  # Track whether the log is from host or container
 
     def on_any_event(self, event):
         try:
@@ -32,10 +31,7 @@ class FileSystemEventHandlerExtended(FileSystemEventHandler):
                         current_user = (
                             getpass.getuser()
                         )  # Track the user performing the action
-                        message = (
-                            f"{timestamp} - User: {current_user} - Log Source: {self.log_source} "
-                            f"- Critical file {event.event_type}: {event_src_path}"
-                        )
+                        message = f"{timestamp} - User: {current_user} - Critical file {event.event_type}: {event_src_path}"
                         for alert in self.alerts:
                             alert.send_alert(
                                 f"Critical File {event.event_type.title()}", message
@@ -46,34 +42,26 @@ class FileSystemEventHandlerExtended(FileSystemEventHandler):
 
 
 class FileSystemMonitor:
-    def __init__(self, alerts, log_source, watch_directories=None):
+    def __init__(self, alerts):
         self.alerts = alerts
-        self.log_source = log_source  # Track log source (host or container)
         self.log_file_path = os.getenv(
             "LOG_FILE_PATH", "/var/log/ids_app/ids.log"
         )  # Log file path from environment variable
-
-        # Critical paths to watch
         self.critical_paths = ["/etc/passwd", "/etc/shadow", "/etc/hosts", "/etc/group"]
-        # Directories to monitor
-        self.watch_directories = (
-            watch_directories
-            if watch_directories is not None
-            else ["/etc", "/var", "/home", "/tmp"]
-        )
+        self.watch_directories = ["/etc", "/var", "/home", "/tmp"]
         self.excluded_dirs = []
         current_user = getpass.getuser()
         logging.info(
-            f"FileSystemMonitor initialized for {self.log_source} with log file path: {self.log_file_path} by user: {current_user}"
+            f"FileSystemMonitor initialized with log file path: {self.log_file_path} by user: {current_user}"
         )
 
     def start(self):
         try:
             logging.info(
-                f"Starting FileSystemMonitor for {self.log_source}, monitoring directories: {self.watch_directories}"
+                f"Starting FileSystemMonitor, monitoring directories: {self.watch_directories}"
             )
             event_handler = FileSystemEventHandlerExtended(
-                self.critical_paths, self.excluded_dirs, self.alerts, self.log_source
+                self.critical_paths, self.excluded_dirs, self.alerts
             )
             observer = InotifyObserver()
             for directory in self.watch_directories:
