@@ -26,6 +26,7 @@ services:
       IDS_USER_PASSWORD: ${IDS_USER_PASSWORD}
       HOST_LOG_FILE_PATH: /host_var_log/auth.log # Host auth.log file
       CONTAINER_LOG_FILE_PATH: /var/log/ids_app/ids.log # Container's IDS log file
+      CONTAINER_SSH_LOG_FILE_PATH: /var/log/supervisor/sshd_stdout.log # Updated line
 
 volumes:
   ids_app_logs:
