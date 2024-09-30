@@ -14,13 +14,10 @@ RUN apk update && \
     openssh \
     shadow
 
-# Declare a build argument for the password
-ARG IDS_USER_PASSWORD
-
-# Create a non-root user and group with fixed UID and GID
-RUN addgroup -g 1000 adm && \
-    adduser -S ids_user -G adm -u 1000 && \
-    echo "ids_user:$IDS_USER_PASSWORD" | chpasswd && \
+# Create a unique group and user with fixed UID and GID
+RUN addgroup -g 1000 ids_group && \
+    adduser -S ids_user -G ids_group -u 1000 && \
+    echo "ids_user:${IDS_USER_PASSWORD}" | chpasswd && \
     chsh -s /bin/sh ids_user && \
     echo 'export PS1="docker_container:\\w\\$ "' >> /home/ids_user/.profile
 
@@ -37,7 +34,7 @@ RUN chmod +x /entrypoint.sh
 
 # Create directories for logs and change ownership to ids_user
 RUN mkdir -p /var/log/supervisor /var/log/ids_app /var/run/sshd && \
-    chown -R ids_user:adm /var/log/ids_app /var/log/supervisor
+    chown -R ids_user:ids_group /var/log/ids_app /var/log/supervisor
 
 # Install and configure SSH
 RUN echo 'root:Docker!' | chpasswd && \
