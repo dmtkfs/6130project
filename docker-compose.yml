@@ -4,19 +4,13 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        # Passing the build argument
         IDS_USER_PASSWORD: ${IDS_USER_PASSWORD}
     image: secure_container_refactored
     ports:
       - "22222:22" # Map host port 22222 to container port 22
-    # container_name: secure_container_refactored --Optional: Removed to avoid naming conflicts
     volumes:
       - /var/log/auth.log:/host_var_log/auth.log:ro
-      - ./home/azureuser/6130project_refactored/.env:/ids_app/.env:ro # Make sure the .env file is correctly mounted
     restart: unless-stopped
-    env_file:
-      # Added this to specify the .env file
-      - .env
     environment:
       EMAIL_ENABLED: ${EMAIL_ENABLED}
       SMTP_SERVER: ${SMTP_SERVER}
@@ -25,4 +19,4 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD}
       EMAIL_FROM: ${EMAIL_FROM}
       EMAIL_TO: ${EMAIL_TO}
-      IDS_USER_PASSWORD: ${IDS_USER_PASSWORD} # This is still needed at runtime for logging in
+      IDS_USER_PASSWORD: ${IDS_USER_PASSWORD}
