@@ -3,6 +3,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # Passing the build argument
+        IDS_USER_PASSWORD: ${IDS_USER_PASSWORD}
     image: secure_container_refactored
     ports:
       - "22222:22" # Map host port 22222 to container port 22
@@ -21,4 +24,4 @@ services:
       SMTP_PASSWORD: ${SMTP_PASSWORD}
       EMAIL_FROM: ${EMAIL_FROM}
       EMAIL_TO: ${EMAIL_TO}
-      IDS_USER_PASSWORD: ${IDS_USER_PASSWORD}
+      IDS_USER_PASSWORD: ${IDS_USER_PASSWORD} # This is still needed at runtime for logging in

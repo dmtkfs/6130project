@@ -14,6 +14,9 @@ RUN apk update && \
     openssh \
     shadow
 
+# Declaring a build argument for the password
+ARG IDS_USER_PASSWORD
+
 # Create a non-root user and group, and set password from environment variable
 RUN addgroup -S adm || true && \
     adduser -S ids_user -G adm || true && \
