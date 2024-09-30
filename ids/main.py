@@ -30,9 +30,7 @@ def main():
     process_monitor = ProcessMonitor(alerts=alerts)
     ssh_monitor = SSHMonitor(alerts=alerts)
     file_system_monitor = FileSystemMonitor(alerts=alerts)
-    container_escape_monitor = ContainerEscapeMonitor(
-        alerts=alerts, log_file_path="/host_var_log/auth.log"
-    )
+    container_escape_monitor = ContainerEscapeMonitor(alerts=alerts)
 
     # Start monitoring threads
     threads = []
