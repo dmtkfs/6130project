@@ -10,12 +10,9 @@ import getpass  # To capture user details
 class SSHMonitor:
     def __init__(self, alerts):
         self.alerts = alerts
-        self.host_log_file_path = os.getenv("HOST_LOG_FILE_PATH", "/var/log/auth.log")
+        # Removed host_log_file_path as it's no longer monitored
         self.container_ssh_log_file_path = os.getenv(
             "CONTAINER_SSH_LOG_FILE_PATH", "/var/log/supervisor/sshd_stdout.log"
-        )
-        logging.info(
-            f"SSHMonitor initialized with host log file path: {self.host_log_file_path}"
         )
         logging.info(
             f"SSHMonitor initialized with container SSH log file path: {self.container_ssh_log_file_path}"
@@ -23,8 +20,7 @@ class SSHMonitor:
 
     def start(self):
         try:
-            # Start monitoring both host and container SSH logs
-            self.monitor_log_file(self.host_log_file_path, "Host")
+            # Only monitor container SSH logs
             self.monitor_log_file(self.container_ssh_log_file_path, "Container")
         except Exception as e:
             logging.error(f"Error in SSHMonitor: {e}")
@@ -79,9 +75,9 @@ class SSHMonitor:
             timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
             message = f"{timestamp} - User: {current_user} - SSH connection closed for user {user} from {ip} port {port} ({source})"
             logging.info(message)
-            # Optionally, sending an alert for connection closures
-            for alert in self.alerts:
-                alert.send_alert(f"SSH Connection Closed ({source})", message)
+            # Optionally, send an alert for connection closures
+            # for alert in self.alerts:
+            #     alert.send_alert(f"SSH Connection Closed ({source})", message)
 
         else:
             logging.debug(f"Unrecognized log entry: {line.strip()}")

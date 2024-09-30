@@ -30,10 +30,7 @@ class FileSystemMonitorHandler(FileSystemEventHandler):
                     logging.warning(message)
                     for alert in self.alerts:
                         alert.send_alert(f"Critical File {event.event_type}", message)
-            else:
-                # Reduce logging for non-critical events
-                pass  # No action needed to stop logging non-critical events
         else:
-            logging.debug(
-                f"Event on excluded path: {event.src_path}"
-            )  # Changed to DEBUG
+            # Do NOT log excluded path events at INFO level
+            # Optionally, you can log them at DEBUG level if needed
+            pass  # No action taken for excluded paths

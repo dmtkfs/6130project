@@ -10,7 +10,7 @@ services:
     ports:
       - "22222:22222" # Map host port 22222 to container port 22222
     volumes:
-      - /var/log/auth.log:/host_var_log/auth.log:ro # Mount host's auth.log as read-only
+      - /var/log/auth.log:/host_var_log/auth.log:ro # Mount host's auth.log as read-only (optional if no longer monitored)
       - /var/log/ids_app/:/var/log/ids_app/ # Container logs (for IDS app)
     restart: unless-stopped
     env_file:
@@ -24,9 +24,5 @@ services:
       EMAIL_FROM: ${EMAIL_FROM}
       EMAIL_TO: ${EMAIL_TO}
       IDS_USER_PASSWORD: ${IDS_USER_PASSWORD}
-      HOST_LOG_FILE_PATH: /host_var_log/auth.log # Host auth.log file
-      CONTAINER_LOG_FILE_PATH: /var/log/ids_app/ids.log # Container's IDS log file
+      LOG_FILE_PATH: /var/log/ids_app/ids.log # Container's IDS log file path
       CONTAINER_SSH_LOG_FILE_PATH: /var/log/supervisor/sshd_stdout.log # Updated line
-
-volumes:
-  ids_app_logs:
