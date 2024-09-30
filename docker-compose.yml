@@ -10,9 +10,9 @@ services:
     ports:
       - "22222:22222" # Map host port 22222 to container port 22222
     volumes:
-      - /var/log/auth.log:/host_var_log/auth.log:ro
-      - ids_app_logs:/var/log/ids_app/
-      - supervisor_logs:/var/log/supervisor/
+      - /var/log/auth.log:/host_var_log/auth.log:ro # Mount host log file as read-only
+      - ids_app_logs:/var/log/ids_app/ # Volume for container logs
+      - supervisor_logs:/var/log/supervisor/ # Volume for supervisor logs
     restart: unless-stopped
     env_file:
       - .env
@@ -25,10 +25,9 @@ services:
       EMAIL_FROM: ${EMAIL_FROM}
       EMAIL_TO: ${EMAIL_TO}
       IDS_USER_PASSWORD: ${IDS_USER_PASSWORD}
-      LOG_FILE_PATH: "/var/log/ids_app/ids.log"
+      HOST_LOG_FILE_PATH: /host_var_log/auth.log # Log path for host
+      CONTAINER_LOG_FILE_PATH: /var/log/ids_app/ids.log # Log path for container
 
 volumes:
   ids_app_logs:
   supervisor_logs:
-
-
