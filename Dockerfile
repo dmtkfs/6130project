@@ -30,8 +30,9 @@ WORKDIR /ids_app
 COPY ids/ /ids_app/ids/
 COPY supervisord.conf /etc/supervisord.conf
 
-# Create directories for logs
-RUN mkdir -p /var/log/supervisor /var/log/ids_app /var/run/sshd
+# Create directories for logs and set permissions for ids_user
+RUN mkdir -p /var/log/supervisor /var/log/ids_app /var/run/sshd && \
+    chown -R ids_user:adm /var/log/ids_app
 
 # Install and configure SSH
 RUN echo 'root:Docker!' | chpasswd && \
