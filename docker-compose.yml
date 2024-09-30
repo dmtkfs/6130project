@@ -5,6 +5,7 @@ services:
       dockerfile: Dockerfile
       args:
         IDS_USER_PASSWORD: ${IDS_USER_PASSWORD}
+        AZURE_PUBLIC_IP: ${AZURE_PUBLIC_IP} # Pass the Azure public IP as a build argument
     image: secure_container_refactored
     ports:
       - "22222:22" # Map host port 22222 to container port 22
@@ -20,3 +21,4 @@ services:
       EMAIL_FROM: ${EMAIL_FROM}
       EMAIL_TO: ${EMAIL_TO}
       IDS_USER_PASSWORD: ${IDS_USER_PASSWORD}
+      AZURE_PUBLIC_IP: ${AZURE_PUBLIC_IP} # Pass the Azure public IP as an environment variable as well
