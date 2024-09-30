@@ -41,8 +41,8 @@ RUN echo 'root:Docker!' | chpasswd && \
     ssh-keygen -A && \
     echo "export VISIBLE=now" >> /etc/profile
 
-# Switch to ids_user after all setup
-USER ids_user
+# Run as root to allow Supervisor to drop privileges as needed
+USER root
 
 # Expose the SSH port
 EXPOSE 22222
