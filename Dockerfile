@@ -54,6 +54,9 @@ ARG IDS_USER_PASSWORD
 # Set environment variable for the user password
 ENV IDS_USER_PASSWORD=${IDS_USER_PASSWORD}
 
+# Switch to non-root user
+USER ids_user
+
 # Set Entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
 
