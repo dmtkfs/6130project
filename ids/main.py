@@ -1,32 +1,27 @@
-# main.py
-
 import logging
+import logging.config
 import threading
 import time
+import sys
 from ids.alerts.email_alert import EmailAlert
 from ids.alerts.log_alert import LogAlert
 from ids.modules.process_monitor import ProcessMonitor
 from ids.modules.ssh_monitor import SSHMonitor
-from ids.modules.file_system_monitor import FileSystemMonitor
+from ids.modules.file_system_monitor import start_file_system_monitor
 from ids.modules.container_escape_monitor import ContainerEscapeMonitor
 from ids.config import LOGGING_CONFIG, CRITICAL_PATHS, EXCLUDED_DIRS
-import sys  # To handle system exit
 
 # Configure logging
 logging.config.dictConfig(LOGGING_CONFIG)
 
 
 def run_monitor(monitor):
-    """
-    Wrapper to run monitor's start method with exception handling.
-    """
     try:
         monitor.start()
     except Exception as e:
         logging.critical(
             f"Monitor {monitor.__class__.__name__} encountered an error: {e}"
         )
-        # Optionally, re-raise to terminate the main process
         raise
 
 
@@ -44,12 +39,14 @@ def main():
         # Initialize monitors
         process_monitor = ProcessMonitor(alerts=alerts)
         ssh_monitor = SSHMonitor(alerts=alerts)
-        file_system_monitor = FileSystemMonitor(
-            critical_paths=CRITICAL_PATHS, excluded_dirs=EXCLUDED_DIRS, alerts=alerts
+        file_system_monitor_thread = threading.Thread(
+            target=start_file_system_monitor,
+            args=(CRITICAL_PATHS, EXCLUDED_DIRS, alerts),
+            daemon=True,
         )
         container_escape_monitor = ContainerEscapeMonitor(alerts=alerts)
 
-        # Start monitoring threads with exception handling
+        # Start monitoring threads
         threads = []
 
         t_process_monitor = threading.Thread(
@@ -64,11 +61,8 @@ def main():
         t_ssh_monitor.start()
         threads.append(t_ssh_monitor)
 
-        t_file_system_monitor = threading.Thread(
-            target=run_monitor, args=(file_system_monitor,), daemon=True
-        )
-        t_file_system_monitor.start()
-        threads.append(t_file_system_monitor)
+        file_system_monitor_thread.start()
+        threads.append(file_system_monitor_thread)
 
         t_container_escape_monitor = threading.Thread(
             target=run_monitor, args=(container_escape_monitor,), daemon=True
@@ -76,9 +70,7 @@ def main():
         t_container_escape_monitor.start()
         threads.append(t_container_escape_monitor)
 
-        logging.info(f"All monitoring services started at {start_time}")
-
-        # Keep the main thread alive to allow daemon threads to run
+        # Keep the main thread alive
         while True:
             time.sleep(1)
 

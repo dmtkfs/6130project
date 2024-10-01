@@ -1,5 +1,3 @@
-# ids/modules/process_monitor.py
-
 import psutil
 import time
 import logging
@@ -35,7 +33,6 @@ class ProcessMonitor:
                                 "supervisord",
                             ]:
                                 timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-                                # proc.username() gives the owner of the process
                                 process_owner = proc.username()
                                 process_info = f"{timestamp} - User: {process_owner} - New process detected: PID={proc.pid}, Name={process_name}, Cmdline={' '.join(proc.cmdline())}"
 
