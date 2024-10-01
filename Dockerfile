@@ -39,7 +39,7 @@ RUN chmod +x /entrypoint.sh
 # Create log directories and set permissions
 RUN mkdir -p /var/log/supervisor /var/log/ids_app /var/run/sshd && \
     chown -R root:root /var/log/supervisor && \
-    chown -R ids_user:ids_group /var/log/ids_app
+    chown -R root:root /var/log/ids_app
 
 # Expose SSH port
 EXPOSE 22222
