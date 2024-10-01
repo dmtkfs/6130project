@@ -1,24 +1,26 @@
+# main.py
+
 import logging
-import logging.config
 import threading
 import time
+from ids.config import setup_logging
 from ids.alerts.email_alert import EmailAlert
 from ids.alerts.log_alert import LogAlert
 from ids.modules.process_monitor import ProcessMonitor
 from ids.modules.ssh_monitor import SSHMonitor
 from ids.modules.file_system_monitor import start_file_system_monitor
 from ids.modules.container_escape_monitor import ContainerEscapeMonitor
-from ids.config import LOGGING_CONFIG
 
-# Configure logging
-logging.config.dictConfig(LOGGING_CONFIG)
+# Initialize logging using the setup_logging function
+setup_logging()
+logger = logging.getLogger("Main")
 
 
 def run_monitor(monitor):
     try:
         monitor.start()
     except Exception as e:
-        logging.critical(
+        logger.critical(
             f"Monitor {monitor.__class__.__name__} encountered an error: {e}"
         )
         raise
@@ -26,7 +28,7 @@ def run_monitor(monitor):
 
 def main():
     try:
-        logging.info("IDS initialized")
+        logger.info("IDS initialized")
 
         # Initialize alert mechanisms
         email_alert = EmailAlert()  # EmailAlert buffers and sends periodic emails
@@ -53,8 +55,11 @@ def main():
         for t in threads:
             t.start()
 
-        # Start file system monitor in the main thread (it monitors both container and host)
-        start_file_system_monitor(alerts=alerts)
+        # Start file system monitor in a separate thread
+        fs_monitor_thread = threading.Thread(
+            target=start_file_system_monitor, args=(alerts,), daemon=True
+        )
+        fs_monitor_thread.start()
 
         # Email scheduling loop
         while True:
@@ -63,7 +68,7 @@ def main():
             time.sleep(900)  # Sleep for 15 minutes (900 seconds)
 
     except Exception as e:
-        logging.critical(f"An unhandled exception occurred: {e}")
+        logger.critical(f"An unhandled exception occurred: {e}")
 
 
 if __name__ == "__main__":

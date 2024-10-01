@@ -1,3 +1,5 @@
+# alerts/email_alert.py
+
 import smtplib
 import logging
 from email.mime.text import MIMEText
@@ -19,7 +21,8 @@ class EmailAlert:
         self.buffered_logs = []  # List to store logs temporarily
         self.last_email_time = time.time()  # To track when to send the next email
         self.email_interval = 15 * 60  # 15 minutes in seconds
-        logging.info("EmailAlert initialized.")
+        self.logger = logging.getLogger(self.__class__.__name__)
+        self.logger.info("EmailAlert initialized.")
 
     def buffer_log(self, log_message):
         """Buffers log messages until it's time to send the email."""
@@ -35,7 +38,7 @@ class EmailAlert:
     def send_aggregated_email(self):
         """Sends an email containing the buffered logs or a 'no activity' message."""
         if not self.enabled:
-            logging.info("Email alerts are disabled.")
+            self.logger.info("Email alerts are disabled.")
             return
 
         # If there are no logs, send a 'no recent activity' message
@@ -56,7 +59,7 @@ class EmailAlert:
 
     def send_email(self, subject, message, retries=3, retry_delay=5):
         """Handles the actual email sending."""
-        logging.info(f"Attempting to send email alert with subject: {subject}.")
+        self.logger.info(f"Attempting to send email alert with subject: {subject}.")
         try_count = 0
 
         while try_count < retries:
@@ -70,14 +73,16 @@ class EmailAlert:
                     server.starttls()
                     server.login(SMTP_USERNAME, SMTP_PASSWORD)
                     server.sendmail(EMAIL_FROM, EMAIL_TO, msg.as_string())
-                    logging.info("Email alert sent successfully.")
+                    self.logger.info("Email alert sent successfully.")
                     break
 
             except Exception as e:
                 try_count += 1
-                logging.error(f"Failed to send email alert (Attempt {try_count}): {e}")
+                self.logger.error(
+                    f"Failed to send email alert (Attempt {try_count}): {e}"
+                )
                 if try_count < retries:
-                    logging.info(f"Retrying in {retry_delay} seconds...")
+                    self.logger.info(f"Retrying in {retry_delay} seconds...")
                     time.sleep(retry_delay)
                 else:
-                    logging.error(f"Failed to send email after {retries} attempts.")
+                    self.logger.error(f"Failed to send email after {retries} attempts.")
