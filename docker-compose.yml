@@ -5,6 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      privileged: true
       args:
         IDS_USER_PASSWORD: ${IDS_USER_PASSWORD} # Passing the password to the build
     image: secure_container_refactored
