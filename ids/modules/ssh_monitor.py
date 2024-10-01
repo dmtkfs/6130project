@@ -1,6 +1,7 @@
 import time
 import logging
 from datetime import datetime
+from ids.alerts.log_alert import LogAlert  # Ensure LogAlert is imported correctly
 
 
 class SSHMonitor:
@@ -33,16 +34,11 @@ class SSHMonitor:
                         message = f"{event_time} - {source} SSH log: {line.strip()}"
                         logging.critical(message)
 
-                        # Use LogAlert for real-time alerts
                         for alert in self.alerts:
-                            if isinstance(alert, LogAlert):
-                                alert.send_alert(
-                                    f"{source} SSH Activity Detected", message
-                                )
+                            if isinstance(alert, LogAlert):  # Check if it's LogAlert
+                                alert.send_alert("SSH Log Detected", message)
 
-                        # Use EmailAlert for buffering logs
-                        for alert in self.alerts:
-                            if hasattr(alert, "buffer_log"):
+                            if hasattr(alert, "buffer_log"):  # Buffer for email alerts
                                 alert.buffer_log(message)
 
                 self.log_file_positions[log_file_path] = log_file.tell()

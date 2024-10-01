@@ -3,6 +3,7 @@ import time
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from datetime import datetime
+from ids.alerts.log_alert import LogAlert  # Ensure LogAlert is imported correctly
 
 
 class FileSystemMonitorHandler(FileSystemEventHandler):
@@ -18,14 +19,12 @@ class FileSystemMonitorHandler(FileSystemEventHandler):
             message = f"{event_time} - Detected event: {event_type} on {event_src_path}"
             logging.info(message)
 
-            # Use LogAlert for real-time alerts
             for alert in self.alerts:
-                if isinstance(alert, LogAlert):
+                if isinstance(alert, LogAlert):  # Check if it's LogAlert
                     alert.send_alert("File System Event Detected", message)
 
-            # Use EmailAlert for buffering logs
             for alert in self.alerts:
-                if hasattr(alert, "buffer_log"):
+                if hasattr(alert, "buffer_log"):  # Buffer for email alerts
                     alert.buffer_log(message)
 
         except Exception as e:

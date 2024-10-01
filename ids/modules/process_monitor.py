@@ -2,6 +2,7 @@ import psutil
 import logging
 import time
 from datetime import datetime
+from ids.alerts.log_alert import LogAlert  # Ensure LogAlert is imported correctly
 
 
 class ProcessMonitor:
@@ -36,15 +37,12 @@ class ProcessMonitor:
                 event_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 message = f"New Process Detected - {event_time} - {proc_info}"
 
-                # Use LogAlert for real-time alerts
                 for alert in self.alerts:
-                    if isinstance(alert, LogAlert):
+                    if isinstance(alert, LogAlert):  # Check if it's LogAlert
                         alert.send_alert("New Process Detected", message)
 
-                # Use EmailAlert for buffering logs
                 for alert in self.alerts:
-                    if hasattr(alert, "buffer_log"):
+                    if hasattr(alert, "buffer_log"):  # Buffer for email alerts
                         alert.buffer_log(message)
-
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue

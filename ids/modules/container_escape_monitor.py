@@ -2,6 +2,7 @@ import logging
 import psutil
 from datetime import datetime
 import time
+from ids.alerts.log_alert import LogAlert  # Ensure LogAlert is imported correctly
 
 
 class ContainerEscapeMonitor:
@@ -24,14 +25,12 @@ class ContainerEscapeMonitor:
             message = f"{event_time} - Privilege escalation attempt by {user} (Cmdline: {' '.join(cmdline)})"
             logging.critical(message)
 
-            # Use LogAlert for real-time alerts
             for alert in self.alerts:
-                if isinstance(alert, LogAlert):
+                if isinstance(alert, LogAlert):  # Check if it's LogAlert
                     alert.send_alert("Privilege Escalation Detected", message)
 
-            # Use EmailAlert for buffering logs
             for alert in self.alerts:
-                if hasattr(alert, "buffer_log"):
+                if hasattr(alert, "buffer_log"):  # Buffer for email alerts
                     alert.buffer_log(message)
 
     def check_container_escape(self, user, cmdline):
@@ -41,14 +40,12 @@ class ContainerEscapeMonitor:
             message = f"{event_time} - Container escape attempt by {user} (Cmdline: {' '.join(cmdline)})"
             logging.critical(message)
 
-            # Use LogAlert for real-time alerts
             for alert in self.alerts:
-                if isinstance(alert, LogAlert):
+                if isinstance(alert, LogAlert):  # Check if it's LogAlert
                     alert.send_alert("Container Escape Attempt Detected", message)
 
-            # Use EmailAlert for buffering logs
             for alert in self.alerts:
-                if hasattr(alert, "buffer_log"):
+                if hasattr(alert, "buffer_log"):  # Buffer for email alerts
                     alert.buffer_log(message)
 
     def monitor_processes(self):

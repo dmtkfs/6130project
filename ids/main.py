@@ -30,8 +30,9 @@ def main():
 
         # Initialize alert mechanisms
         email_alert = EmailAlert()  # EmailAlert buffers and sends periodic emails
+        log_alert = LogAlert()  # LogAlert handles real-time log alerting
         alerts = [
-            LogAlert(),
+            log_alert,
             email_alert,
         ]  # Pass email and log alert systems to monitors
 
