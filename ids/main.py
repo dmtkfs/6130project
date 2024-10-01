@@ -14,6 +14,7 @@ from ids.modules.container_escape_monitor import ContainerEscapeMonitor
 # Initialize logging using the setup_logging function
 setup_logging()
 logger = logging.getLogger("Main")
+logger.info("Starting IDS Application")
 
 
 def run_monitor(monitor):
@@ -54,17 +55,23 @@ def main():
 
         for t in threads:
             t.start()
+            logger.info(f"Started monitor thread: {t.name}")
 
         # Start file system monitor in a separate thread
         fs_monitor_thread = threading.Thread(
-            target=start_file_system_monitor, args=(alerts,), daemon=True
+            target=start_file_system_monitor,
+            args=(alerts,),
+            daemon=True,
+            name="FileSystemMonitorThread",
         )
         fs_monitor_thread.start()
+        logger.info("Started FileSystemMonitor thread")
 
         # Email scheduling loop
         while True:
             # Email is sent every 15 minutes containing all the buffered logs
             email_alert.send_periodic_email()
+            logger.debug("Sent periodic email alert")
             time.sleep(900)  # Sleep for 15 minutes (900 seconds)
 
     except Exception as e:

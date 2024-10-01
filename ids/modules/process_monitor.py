@@ -1,12 +1,10 @@
-# modules/process_monitor.py
-
 import psutil
 import logging
 import time
 from datetime import datetime
 from ids.alerts.log_alert import LogAlert
 from ids.alerts.email_alert import EmailAlert
-from ids.config import SUSPICIOUS_COMMANDS
+from ids.config import SUSPICIOUS_COMMANDS, WHITELISTED_PROCESSES
 
 
 class ProcessMonitor:
@@ -40,11 +38,16 @@ class ProcessMonitor:
                 proc = psutil.Process(pid)
                 cmdline = proc.cmdline()
                 command = cmdline[0] if cmdline else ""
-                # Check if command is suspicious
-                if any(susp_cmd in command for susp_cmd in SUSPICIOUS_COMMANDS):
+                process_name = proc.name()
+
+                # Check if command is suspicious and not whitelisted
+                if (
+                    any(susp_cmd in command for susp_cmd in SUSPICIOUS_COMMANDS)
+                    and process_name not in WHITELISTED_PROCESSES
+                ):
                     event_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     user = proc.username()
-                    message = f"User '{user}' started suspicious process '{proc.name()}' (PID={pid}) with command: {' '.join(cmdline)} at {event_time}"
+                    message = f"User '{user}' started suspicious process '{process_name}' (PID={pid}) with command: {' '.join(cmdline)} at {event_time}"
 
                     self.logger.warning(message)
 
