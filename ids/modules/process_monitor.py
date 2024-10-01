@@ -12,10 +12,7 @@ class ProcessMonitor:
         self.alerts = alerts
         self.poll_interval = poll_interval
         self.known_pids = set()
-        self.log_file_path = os.getenv("LOG_FILE_PATH", "/var/log/ids_app/ids.log")
-        logging.info(
-            f"ProcessMonitor initialized with log file path: {self.log_file_path}"
-        )
+        logging.debug("ProcessMonitor initialized.")
 
     def start(self):
         logging.info("ProcessMonitor started.")
@@ -38,13 +35,14 @@ class ProcessMonitor:
                                 "supervisord",
                             ]:
                                 timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-                                current_user = getpass.getuser()
-                                process_info = f"{timestamp} - User: {current_user} - New process detected: PID={proc.pid}, Name={proc.name()}, Cmdline={' '.join(proc.cmdline())}"
+                                # proc.username() gives the owner of the process
+                                process_owner = proc.username()
+                                process_info = f"{timestamp} - User: {process_owner} - New process detected: PID={proc.pid}, Name={process_name}, Cmdline={' '.join(proc.cmdline())}"
 
                                 logging.info(process_info)
 
                                 # Trigger alerts only for critical processes
-                                if proc.username() == "root":
+                                if process_owner == "root":
                                     logging.warning(
                                         f"Suspicious root process detected: {process_info}"
                                     )

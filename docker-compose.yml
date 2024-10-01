@@ -1,3 +1,5 @@
+# docker-compose.yml
+
 services:
   sec_app:
     build:
@@ -8,7 +10,7 @@ services:
     image: secure_container_refactored
     container_name: sec_app_container
     ports:
-      - "22222:22222" # Map host port 22222 to container port 22222
+      - "${HOST_SSH_PORT}:${CONTAINER_SSH_PORT}" # Map host port to container port
     volumes:
       - /var/log/auth.log:/host_var_log/auth.log:ro # Mount host's auth.log as read-only
       - /var/log/ids_app/:/var/log/ids_app/ # Container logs (for IDS app)
@@ -27,3 +29,6 @@ services:
       LOG_FILE_PATH: /var/log/ids_app/ids.log # Container's IDS log file path
       CONTAINER_SSH_LOG_FILE_PATH: /var/log/supervisor/sshd_stdout.log # Container's SSH log path
       HOST_SSH_LOG_FILE_PATH: /host_var_log/auth.log # Host's SSH log path
+      HOST_SSH_PORT: ${HOST_SSH_PORT}
+      CONTAINER_SSH_PORT: ${CONTAINER_SSH_PORT}
+    # Removed secrets section since Docker secrets are not being used

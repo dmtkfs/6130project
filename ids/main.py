@@ -1,3 +1,5 @@
+# main.py
+
 import logging
 import logging.config
 import threading
@@ -8,9 +10,9 @@ from ids.modules.process_monitor import ProcessMonitor
 from ids.modules.ssh_monitor import SSHMonitor
 from ids.modules.file_system_monitor import FileSystemMonitor
 from ids.modules.container_escape_monitor import ContainerEscapeMonitor
-from ids.config import LOGGING_CONFIG
-import getpass  # To capture user details
+from ids.config import LOGGING_CONFIG, CRITICAL_PATHS, EXCLUDED_DIRS
 import sys  # To handle system exit
+
 
 # Configure logging using dictConfig
 logging.config.dictConfig(LOGGING_CONFIG)
@@ -32,10 +34,8 @@ def run_monitor(monitor):
 
 def main():
     try:
-        # Capture the username who is running the IDS
-        current_user = getpass.getuser()
         start_time = time.strftime("%Y-%m-%d %H:%M:%S")
-        logging.info(f"IDS initialized at {start_time} by user: {current_user}")
+        logging.info(f"IDS initialized at {start_time}")
 
         # Initialize alert mechanisms
         alerts = [
@@ -53,33 +53,35 @@ def main():
         threads = []
 
         t_process_monitor = threading.Thread(
-            target=run_monitor, args=(process_monitor,)
+            target=run_monitor, args=(process_monitor,), daemon=True
         )
         t_process_monitor.start()
         threads.append(t_process_monitor)
 
-        t_ssh_monitor = threading.Thread(target=run_monitor, args=(ssh_monitor,))
+        t_ssh_monitor = threading.Thread(
+            target=run_monitor, args=(ssh_monitor,), daemon=True
+        )
         t_ssh_monitor.start()
         threads.append(t_ssh_monitor)
 
         t_file_system_monitor = threading.Thread(
-            target=run_monitor, args=(file_system_monitor,)
+            target=run_monitor, args=(file_system_monitor,), daemon=True
         )
         t_file_system_monitor.start()
         threads.append(t_file_system_monitor)
 
         t_container_escape_monitor = threading.Thread(
-            target=run_monitor, args=(container_escape_monitor,)
+            target=run_monitor, args=(container_escape_monitor,), daemon=True
         )
         t_container_escape_monitor.start()
         threads.append(t_container_escape_monitor)
 
-        logging.info(
-            f"All monitoring services started at {start_time} by user: {current_user}"
-        )
+        logging.info(f"All monitoring services started at {start_time}")
 
-        for t in threads:
-            t.join()
+        # Keep the main thread alive to allow daemon threads to run
+        while True:
+            time.sleep(1)
+
     except Exception as e:
         logging.critical(f"An unhandled exception occurred: {e}")
         sys.exit(1)
