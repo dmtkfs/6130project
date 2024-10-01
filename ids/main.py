@@ -1,21 +1,24 @@
+import logging
+import sys
+import time
 import psutil
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-import logging
-import time
-import os
 import threading
-import sys
-from subprocess import Popen, PIPE
 import re
 import shutil
+import os
+from subprocess import Popen, PIPE
 
-# Configure logging
+# Configure logging to stdout
 logging.basicConfig(
-    level=logging.INFO,  # Set to DEBUG for detailed output
+    level=logging.INFO,  # Set to DEBUG for more detailed logs
     format="%(asctime)s - %(levelname)s - %(message)s",
-    stream=sys.stdout,
+    stream=sys.stdout,  # Log to stdout
 )
+
+# [Rest of your IDS script remains unchanged]
+# Ensure no FileHandlers are added
 
 
 def monitor_processes():
@@ -171,11 +174,11 @@ def monitor_files(paths_to_watch):
 
 def monitor_ssh_attempts():
     """
-    Monitors SSH login attempts by tailing the host's auth log.
+    Monitors SSH login attempts by tailing the centralized log file.
     """
     try:
         logging.info("Monitoring SSH login attempts.")
-        ssh_log_path = "/host_var_log/auth.log"  # Adjust this path if necessary
+        ssh_log_path = "/var/log/ids_app/ids.log"  # Centralized log file
 
         if not os.path.exists(ssh_log_path):
             logging.error(f"SSH log file does not exist: {ssh_log_path}")
@@ -241,7 +244,7 @@ def monitor_container_escape_attempts():
         logging.info("Monitoring for container escape attempts.")
 
         # Paths that should not be accessible from within the container
-        sensitive_host_paths = ["/host_root", "/proc/host"]
+        sensitive_host_paths = ["/proc/1/ns/net", "/proc/1/cmdline"]
 
         while True:
             try:

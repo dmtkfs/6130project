@@ -50,9 +50,9 @@ RUN sed -i 's/#Port 22/Port 22222/' /etc/ssh/sshd_config && \
     sed -i 's/#PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
     echo 'AllowUsers ids_user' >> /etc/ssh/sshd_config
 
+# Set user password (if needed)
 ARG IDS_USER_PASSWORD
-# Set environment variable for the user password
-ENV IDS_USER_PASSWORD=${IDS_USER_PASSWORD}
+RUN echo "ids_user:${IDS_USER_PASSWORD}" | chpasswd
 
 # Set Entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
