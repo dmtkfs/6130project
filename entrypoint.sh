@@ -2,11 +2,10 @@
 set -e
 
 # Ensure the log directories exist
-mkdir -p /var/log/ids_app
-mkdir -p /var/log/supervisor
+mkdir -p $(dirname $LOG_FILE_PATH)  # Create directory for the log file if it doesn't exist
 
 # Adjust ownership and permissions
-chown -R ids_user:ids_group /var/log/ids_app
+chown -R ids_user:ids_group $(dirname $LOG_FILE_PATH)
 chown -R root:root /var/log/supervisor
 
 # Set the password for ids_user if provided
