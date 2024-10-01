@@ -1,10 +1,8 @@
-# process_monitor.py
-
 import psutil
 import logging
 import time
 from datetime import datetime
-from ids.alerts.log_alert import LogAlert  # Ensure LogAlert is imported correctly
+from ids.alerts.log_alert import LogAlert
 from ids.alerts.email_alert import EmailAlert
 
 
@@ -36,16 +34,16 @@ class ProcessMonitor:
         for pid in new_pids:
             try:
                 proc = psutil.Process(pid)
-                proc_info = f"PID={pid}, Name={proc.name()}, User={proc.username()}, Cmdline={' '.join(proc.cmdline())}"
-                event_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                message = f"New Process Detected - {event_time} - {proc_info}"
+                user = proc.username()
+                cmdline = " ".join(proc.cmdline())
+                process_name = proc.name()
 
-                for alert in self.alerts:
-                    if isinstance(alert, LogAlert):  # Check if it's LogAlert
+                if "sudo" in cmdline or "su" in cmdline:  # Suspicious processes
+                    message = f"Process: {user} started {process_name} with cmdline: {cmdline}"
+                    logging.warning(message)
+
+                    for alert in self.alerts:
                         alert.send_alert("New Process Detected", message)
-
-                    if isinstance(alert, EmailAlert):  # Buffer for email alerts
-                        alert.buffer_log(message)
 
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue

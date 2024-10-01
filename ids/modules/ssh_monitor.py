@@ -1,5 +1,3 @@
-# ssh_monitor.py
-
 import time
 import logging
 from datetime import datetime
@@ -34,15 +32,11 @@ class SSHMonitor:
                 for line in log_file:
                     if "Failed" in line or "Accepted" in line:
                         event_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                        message = f"{event_time} - {source} SSH log: {line.strip()}"
+                        message = f"SSH: {source} log at {event_time}: {line.strip()}"
                         logging.critical(message)
 
                         for alert in self.alerts:
-                            if isinstance(alert, LogAlert):  # Check if it's LogAlert
-                                alert.send_alert("New Process Detected", message)
-
-                            if isinstance(alert, EmailAlert):  # Buffer for email alerts
-                                alert.buffer_log(message)
+                            alert.send_alert("SSH Log Detected", message)
 
                 self.log_file_positions[log_file_path] = log_file.tell()
         except Exception as e:

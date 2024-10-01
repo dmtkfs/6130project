@@ -17,15 +17,14 @@ class FileSystemMonitorHandler(FileSystemEventHandler):
             event_type = event.event_type
             event_src_path = event.src_path
             event_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            message = f"{event_time} - Detected event: {event_type} on {event_src_path}"
-            logging.info(message)
 
-            for alert in self.alerts:
-                if isinstance(alert, LogAlert):  # Check if it's LogAlert
+            # Filter to log only suspicious activities
+            if event_type in ["modified", "deleted", "created"]:  # Suspicious actions
+                message = f"{event_time} - File System: {event_type} event on {event_src_path}"
+                logging.warning(message)
+
+                for alert in self.alerts:
                     alert.send_alert("File System Event Detected", message)
-
-                if isinstance(alert, EmailAlert):  # Buffer for email alerts
-                    alert.buffer_log(message)
 
         except Exception as e:
             logging.error(f"Error handling file system event: {e}")

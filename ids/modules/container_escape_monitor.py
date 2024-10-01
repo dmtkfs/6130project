@@ -1,5 +1,3 @@
-# container_escape_monitor.py
-
 import logging
 import psutil
 from datetime import datetime
@@ -29,12 +27,7 @@ class ContainerEscapeMonitor:
             logging.critical(message)
 
             for alert in self.alerts:
-                if isinstance(alert, LogAlert):  # Check if it's LogAlert
-                    alert.send_alert("Privilege Escalation Detected", message)
-
-            for alert in self.alerts:
-                if hasattr(alert, "buffer_log"):  # Buffer for email alerts
-                    alert.buffer_log(message)
+                alert.send_alert("Privilege Escalation Detected", message)
 
     def check_container_escape(self, user, cmdline):
         """Detect potential container escape attempts."""
@@ -44,11 +37,7 @@ class ContainerEscapeMonitor:
             logging.critical(message)
 
             for alert in self.alerts:
-                if isinstance(alert, LogAlert):  # Check if it's LogAlert
-                    alert.send_alert("New Process Detected", message)
-
-                if isinstance(alert, EmailAlert):  # Buffer for email alerts
-                    alert.buffer_log(message)
+                alert.send_alert("Container Escape Attempt Detected", message)
 
     def monitor_processes(self):
         """Monitor all running processes inside the container."""
