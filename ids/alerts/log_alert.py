@@ -6,4 +6,5 @@ class LogAlert:
         logging.info("LogAlert initialized.")
 
     def send_alert(self, subject, message):
+        """Log the alert message to system logs."""
         logging.warning(f"{subject} - {message}")

@@ -5,14 +5,17 @@ from datetime import datetime
 
 
 class ProcessMonitor:
-    def __init__(self, alerts):
-        self.alerts = alerts
+    def __init__(self, log_alert, email_alert):
+        """Initialize the ProcessMonitor with log and email alerts."""
+        self.log_alert = log_alert  # LogAlert for logging
+        self.email_alert = email_alert  # EmailAlert for email notifications
         self.existing_pids = set(
             psutil.pids()
         )  # Initialize with currently running processes
         logging.info("ProcessMonitor initialized.")
 
     def start(self):
+        """Start monitoring processes."""
         logging.info("ProcessMonitor started.")
         try:
             while True:
@@ -23,7 +26,7 @@ class ProcessMonitor:
 
     def check_new_processes(self):
         """Detect newly started processes."""
-        current_pids = set(psutil.pids())  # Get current running processes
+        current_pids = set(psutil.pids())  # Get currently running processes
         new_pids = (
             current_pids - self.existing_pids
         )  # Compare with the known existing ones
@@ -34,10 +37,17 @@ class ProcessMonitor:
                 proc = psutil.Process(pid)
                 proc_info = f"PID={pid}, Name={proc.name()}, User={proc.username()}, Cmdline={' '.join(proc.cmdline())}"
                 event_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                logging.critical(f"New Process Detected - {event_time} - {proc_info}")
-                for alert in self.alerts:
-                    alert.send_alert(
-                        "New Process Detected", f"{event_time} - {proc_info}"
-                    )
+                logging.info(f"New Process Detected - {event_time} - {proc_info}")
+
+                # Log the event
+                self.log_alert.send_alert(
+                    "New Process Detected", f"{event_time} - {proc_info}"
+                )
+
+                # Buffer the event for email alert
+                self.email_alert.buffer_log(
+                    f"New Process Detected - {event_time} - {proc_info}"
+                )
+
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue

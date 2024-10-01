@@ -19,6 +19,7 @@ class EmailAlert:
         self.buffered_logs = []  # List to store logs temporarily
         self.last_email_time = time.time()  # To track when to send the next email
         self.email_interval = 15 * 60  # 15 minutes in seconds
+        logging.info("EmailAlert initialized.")
 
     def buffer_log(self, log_message):
         """Buffers log messages until it's time to send the email."""
@@ -47,6 +48,11 @@ class EmailAlert:
 
         self.send_email(subject, message)
         self.buffered_logs = []  # Clear the log buffer after sending the email
+
+    def send_alert(self, subject, message):
+        """Send an immediate alert email."""
+        if self.enabled:
+            self.send_email(subject, message)
 
     def send_email(self, subject, message, retries=3, retry_delay=5):
         """Handles the actual email sending."""
