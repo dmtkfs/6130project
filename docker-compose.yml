@@ -12,7 +12,7 @@ services:
     volumes:
       - /var/log/auth.log:/host_var_log/auth.log:ro # Mount host's auth.log as read-only
       - /var/log/syslog:/host_var_log/syslog:ro # Mount host's syslog (processes)
-      - /var/log/ids_app/:/var/log/ids_app/ # Container logs (for IDS app)
+      - /var/log/ids_app:/var/log/ids_app # Container logs (for IDS app)
     restart: unless-stopped
     env_file:
       - .env

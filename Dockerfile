@@ -14,10 +14,11 @@ RUN apk update && \
     py3-psutil \
     py3-watchdog \
     openssh \
-    shadow
+    shadow \
+    bash  # Added bash if needed for scripts
 
 # Create a group and user for the IDS application
-RUN addgroup -g 1000 ids_group && \
+RUN addgroup -g 1001 ids_group && \
     adduser -S ids_user -G ids_group -u 1001 && \
     chsh -s /bin/sh ids_user
 
@@ -38,8 +39,13 @@ RUN chmod +x /entrypoint.sh
 
 # Create log directories and set permissions
 RUN mkdir -p /var/log/supervisor /var/log/ids_app /var/run/sshd && \
-    chown -R root:root /var/log/supervisor && \
-    chown -R root:root /var/log/ids_app
+    chown -R root:ids_group /var/log/supervisor /var/log/ids_app && \
+    chmod -R 775 /var/log/supervisor /var/log/ids_app
+
+# Create and set permissions for the centralized log file
+RUN touch /var/log/ids_app/ids.log && \
+    chown root:ids_group /var/log/ids_app/ids.log && \
+    chmod 664 /var/log/ids_app/ids.log
 
 # Expose SSH port
 EXPOSE 22222
