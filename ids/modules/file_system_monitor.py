@@ -1,5 +1,3 @@
-# file_system_monitor.py
-
 import logging
 import time
 from watchdog.observers import Observer
@@ -24,7 +22,7 @@ class FileSystemMonitorHandler(FileSystemEventHandler):
 
             for alert in self.alerts:
                 if isinstance(alert, LogAlert):  # Check if it's LogAlert
-                    alert.send_alert("New Process Detected", message)
+                    alert.send_alert("File System Event Detected", message)
 
                 if isinstance(alert, EmailAlert):  # Buffer for email alerts
                     alert.buffer_log(message)
