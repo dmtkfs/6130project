@@ -1,6 +1,6 @@
 import logging
-import os
 import time
+from datetime import datetime
 
 
 class ContainerEscapeMonitor:
@@ -12,14 +12,14 @@ class ContainerEscapeMonitor:
         logging.info("ContainerEscapeMonitor started.")
         try:
             while True:
-                self.monitor_container_escape()
+                self.detect_escape_attempts()
                 time.sleep(5)
         except Exception as e:
             logging.error(f"ContainerEscapeMonitor encountered an error: {e}")
 
-    def monitor_container_escape(self):
-        if os.path.exists("/path_to_sensitive_host_file"):
-            message = "Potential container escape attempt detected!"
-            logging.warning(message)
-            for alert in self.alerts:
-                alert.send_alert("Container Escape Detected", message)
+    def detect_escape_attempts(self):
+        event_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        message = f"{event_time} - Potential container escape attempt detected."
+        logging.warning(message)
+        for alert in self.alerts:
+            alert.send_alert("Container Escape Attempt Detected", message)

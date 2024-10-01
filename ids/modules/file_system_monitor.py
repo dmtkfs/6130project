@@ -2,6 +2,7 @@ import logging
 import time
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
+from datetime import datetime
 
 
 class FileSystemMonitorHandler(FileSystemEventHandler):
@@ -12,7 +13,8 @@ class FileSystemMonitorHandler(FileSystemEventHandler):
     def on_any_event(self, event):
         event_type = event.event_type
         event_src_path = event.src_path
-        message = f"Detected event: {event_type} on {event_src_path}"
+        event_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Timestamp for event
+        message = f"{event_time} - Detected event: {event_type} on {event_src_path}"
         logging.info(message)
         for alert in self.alerts:
             alert.send_alert("File System Event Detected", message)

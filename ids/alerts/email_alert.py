@@ -21,17 +21,21 @@ class EmailAlert:
             logging.info("Email alerts are disabled.")
             return
 
-        logging.info("Attempting to send email alert.")
+        logging.info(f"Attempting to send email alert with subject: {subject}")
         try:
             msg = MIMEText(message)
             msg["Subject"] = subject
             msg["From"] = EMAIL_FROM
             msg["To"] = EMAIL_TO
 
-            logging.info(f"Sending email with subject: {subject}")
+            logging.debug(f"Email subject: {subject}")
+            logging.debug(f"Email message: {message}")
 
+            # Set up the server
             with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+                server.ehlo()
                 server.starttls()
+                server.ehlo()
                 server.login(SMTP_USERNAME, SMTP_PASSWORD)
                 server.sendmail(EMAIL_FROM, EMAIL_TO, msg.as_string())
                 logging.info("Email alert sent successfully.")
