@@ -13,21 +13,11 @@ class FileSystemMonitorHandler(FileSystemEventHandler):
     def on_any_event(self, event):
         event_type = event.event_type
         event_src_path = event.src_path
-        event_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Timestamp for event
+        event_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         message = f"{event_time} - Detected event: {event_type} on {event_src_path}"
         logging.info(message)
-
-        # Only send critical alerts for specific sensitive file changes
-        if "/etc/passwd" in event_src_path or "/etc/shadow" in event_src_path:
-            for alert in self.alerts:
-                alert.send_alert(
-                    "File System Event Detected", message, level=logging.CRITICAL
-                )
-        else:
-            for alert in self.alerts:
-                alert.send_alert(
-                    "File System Event Detected", message, level=logging.WARNING
-                )
+        for alert in self.alerts:
+            alert.send_alert("File System Event Detected", message)
 
 
 def start_file_system_monitor(alerts):

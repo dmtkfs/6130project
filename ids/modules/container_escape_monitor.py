@@ -1,5 +1,5 @@
 import logging
-import psutil  # To fetch process details
+import psutil
 from datetime import datetime
 import time
 
@@ -10,7 +10,6 @@ class ContainerEscapeMonitor:
         logging.info("ContainerEscapeMonitor initialized.")
 
     def get_process_info(self, pid):
-        """Get process information from PID."""
         try:
             process = psutil.Process(pid)
             return process.username(), process.cmdline()
@@ -21,20 +20,14 @@ class ContainerEscapeMonitor:
     def start(self):
         logging.info("ContainerEscapeMonitor started.")
         while True:
-            # Simulating a container escape detection mechanism (replace with real check)
-            # Here, you should implement the actual detection logic
-            pid = 100  # This is an example PID (replace with real detection PID)
+            pid = 100  # Example PID, replace with detection logic
             user, cmdline = self.get_process_info(pid)
 
             if user and cmdline:
                 event_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 message = f"{event_time} - Potential container escape attempt detected by {user} (Cmdline: {' '.join(cmdline)})"
-                logging.warning(message)
+                logging.critical(message)  # Log as CRITICAL
                 for alert in self.alerts:
-                    alert.send_alert(
-                        "Container Escape Attempt Detected",
-                        message,
-                        level=logging.CRITICAL,
-                    )
+                    alert.send_alert("Container Escape Attempt Detected", message)
 
-            time.sleep(5)  # Monitor continuously (adjust this sleep time as needed)
+            time.sleep(5)  # Adjust this as needed
