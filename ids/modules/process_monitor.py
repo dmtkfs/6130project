@@ -33,11 +33,21 @@ class ProcessMonitor:
                 )  # Timestamp for event
                 logging.info(f"New process detected: {proc_info}")
 
-                # Send alerts
-                for alert in self.alerts:
-                    alert.send_alert(
-                        "Suspicious Process Detected", f"{event_time} - {proc_info}"
-                    )
+                # Only send critical alerts for suspicious (root) processes
+                if proc.username() == "root":
+                    for alert in self.alerts:
+                        alert.send_alert(
+                            "Suspicious Process Detected",
+                            f"{event_time} - {proc_info}",
+                            level=logging.CRITICAL,
+                        )
+                else:
+                    for alert in self.alerts:
+                        alert.send_alert(
+                            "Process Detected",
+                            f"{event_time} - {proc_info}",
+                            level=logging.INFO,
+                        )
 
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue

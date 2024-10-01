@@ -34,8 +34,21 @@ class SSHMonitor:
                         )  # Timestamp for event
                         message = f"{event_time} - {source} SSH log: {line.strip()}"
                         logging.warning(message)
-                        for alert in self.alerts:
-                            alert.send_alert(f"{source} SSH Activity Detected", message)
+
+                        if "Failed" in line:
+                            for alert in self.alerts:
+                                alert.send_alert(
+                                    "Failed SSH Attempt Detected",
+                                    message,
+                                    level=logging.CRITICAL,
+                                )
+                        else:
+                            for alert in self.alerts:
+                                alert.send_alert(
+                                    f"{source} SSH Activity Detected",
+                                    message,
+                                    level=logging.INFO,
+                                )
 
                 self.log_file_positions[log_file_path] = log_file.tell()
         except Exception as e:

@@ -21,8 +21,7 @@ class ContainerEscapeMonitor:
         logging.info("ContainerEscapeMonitor started.")
         while True:
             # Simulating a container escape detection mechanism (replace with real check)
-            # Here, you should implement the actual detection logic
-            pid = 100  # This is an example PID (replace with real detection PID)
+            pid = 100  # Example PID (replace with real detection PID)
             user, cmdline = self.get_process_info(pid)
 
             if user and cmdline:
@@ -30,6 +29,10 @@ class ContainerEscapeMonitor:
                 message = f"{event_time} - Potential container escape attempt detected by {user} (Cmdline: {' '.join(cmdline)})"
                 logging.warning(message)
                 for alert in self.alerts:
-                    alert.send_alert("Container Escape Attempt Detected", message)
+                    alert.send_alert(
+                        "Container Escape Attempt Detected",
+                        message,
+                        level=logging.CRITICAL,
+                    )
 
-            time.sleep(5)  # Monitor continuously (adjust this sleep time as needed)
+            time.sleep(5)  # Monitor continuously (adjust sleep time as needed)
