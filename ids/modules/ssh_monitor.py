@@ -1,9 +1,6 @@
 import time
 import logging
-from ids.config import (
-    HOST_SSH_LOG_FILE_PATH,
-    CONTAINER_SSH_LOG_FILE_PATH,
-)
+from ids.config import LOG_FILE_PATH  # Use the centralized log file
 from datetime import datetime
 
 
@@ -17,8 +14,9 @@ class SSHMonitor:
         logging.info("SSHMonitor started.")
         try:
             while True:
-                self.monitor_ssh_logs(HOST_SSH_LOG_FILE_PATH, "Host")
-                self.monitor_ssh_logs(CONTAINER_SSH_LOG_FILE_PATH, "Container")
+                self.monitor_ssh_logs(
+                    LOG_FILE_PATH, "Container SSH"
+                )  # Monitor the central log file
                 time.sleep(5)
         except Exception as e:
             logging.error(f"SSHMonitor encountered an error: {e}")
