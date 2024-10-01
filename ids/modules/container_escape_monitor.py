@@ -28,31 +28,27 @@ class ContainerEscapeMonitor:
                 alert.send_alert("Privilege Escalation Detected", message)
 
     def check_container_escape(self, user, cmdline):
-        """Detect container escape by monitoring access to host system resources."""
-        if (
-            "escape_attempt_marker" in cmdline
-        ):  # Placeholder logic, replace with real detection
+        """Detect potential container escape attempts."""
+        if "/host/" in cmdline or "nsenter" in cmdline:  # Common escape patterns
             event_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            message = f"{event_time} - Container escape attempt detected by {user} (Cmdline: {' '.join(cmdline)})"
+            message = f"{event_time} - Container escape attempt by {user} (Cmdline: {' '.join(cmdline)})"
             logging.critical(message)
             for alert in self.alerts:
                 alert.send_alert("Container Escape Attempt Detected", message)
 
-    def monitor_privilege_escalation_and_escape(self):
-        """Monitor container for privilege escalation and escape attempts."""
-        for proc in psutil.process_iter(["pid", "username", "cmdline"]):
-            user, cmdline = proc.info["username"], proc.info["cmdline"]
+    def monitor_processes(self):
+        """Monitor all running processes."""
+        for process in psutil.process_iter(["pid", "username", "cmdline"]):
+            pid = process.info["pid"]
+            user = process.info["username"]
+            cmdline = process.info["cmdline"]
+
             if user and cmdline:
-                # Check both privilege escalation and escape attempts
                 self.check_privilege_escalation(user, cmdline)
                 self.check_container_escape(user, cmdline)
 
     def start(self):
         logging.info("ContainerEscapeMonitor started.")
         while True:
-            try:
-                self.monitor_privilege_escalation_and_escape()
-            except Exception as e:
-                logging.error(f"ContainerEscapeMonitor encountered an error: {e}")
-
-            time.sleep(5)  # Adjust this interval as needed
+            self.monitor_processes()
+            time.sleep(5)  # Adjust the monitoring interval if needed
