@@ -29,38 +29,37 @@ def main():
         logging.info("IDS initialized")
 
         # Initialize alert mechanisms
-        email_alert = EmailAlert()
-        alerts = [LogAlert(), email_alert]
+        email_alert = EmailAlert()  # EmailAlert buffers and sends periodic emails
+        alerts = [
+            LogAlert(),
+            email_alert,
+        ]  # Pass email and log alert systems to monitors
 
-        # Initialize monitors
+        # Initialize monitors for both container and host
         process_monitor = ProcessMonitor(alerts=alerts)
         ssh_monitor = SSHMonitor(alerts=alerts)
         container_escape_monitor = ContainerEscapeMonitor(alerts=alerts)
 
-        # Start monitoring threads
-        threads = []
-        threads.append(
-            threading.Thread(target=run_monitor, args=(process_monitor,), daemon=True)
-        )
-        threads.append(
-            threading.Thread(target=run_monitor, args=(ssh_monitor,), daemon=True)
-        )
-        threads.append(
+        # Start monitoring threads for each module
+        threads = [
+            threading.Thread(target=run_monitor, args=(process_monitor,), daemon=True),
+            threading.Thread(target=run_monitor, args=(ssh_monitor,), daemon=True),
             threading.Thread(
                 target=run_monitor, args=(container_escape_monitor,), daemon=True
-            )
-        )
+            ),
+        ]
 
         for t in threads:
             t.start()
 
-        # Start file system monitor in the main thread
+        # Start file system monitor in the main thread (it monitors both container and host)
         start_file_system_monitor(alerts=alerts)
 
         # Email scheduling loop
         while True:
+            # Email is sent every 15 minutes containing all the buffered logs
             email_alert.send_periodic_email()
-            time.sleep(60)  # Check every minute if it's time to send an email
+            time.sleep(900)  # Sleep for 15 minutes (900 seconds)
 
     except Exception as e:
         logging.critical(f"An unhandled exception occurred: {e}")

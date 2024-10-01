@@ -3,6 +3,7 @@ import time
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 from datetime import datetime
+from ids.config import CRITICAL_PATHS, EXCLUDED_DIRS
 
 
 class FileSystemMonitorHandler(FileSystemEventHandler):
@@ -16,17 +17,18 @@ class FileSystemMonitorHandler(FileSystemEventHandler):
         event_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         message = f"{event_time} - Detected event: {event_type} on {event_src_path}"
         logging.info(message)
-
-        # Buffer the log for email later
         for alert in self.alerts:
-            if hasattr(alert, "buffer_log"):
-                alert.buffer_log(message)
+            alert.send_alert("File System Event Detected", message)
 
 
 def start_file_system_monitor(alerts):
     event_handler = FileSystemMonitorHandler(alerts)
     observer = Observer()
-    observer.schedule(event_handler, path="/etc", recursive=True)
+
+    # Monitor critical paths in both the container and the host
+    for path in CRITICAL_PATHS:
+        observer.schedule(event_handler, path=path, recursive=True)
+
     observer.start()
     logging.info("FileSystemMonitor started.")
 

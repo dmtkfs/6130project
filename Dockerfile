@@ -41,6 +41,9 @@ RUN mkdir -p /var/log/supervisor /var/log/ids_app /var/run/sshd && \
     chown -R root:root /var/log/supervisor && \
     chown -R ids_user:ids_group /var/log/ids_app
 
+# Ensure the container has access to the mounted syslog (host)
+RUN chmod o+r /var/log/syslog  # Grant read access to syslog for monitoring purposes
+
 # Expose SSH port
 EXPOSE 22222
 
