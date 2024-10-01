@@ -17,9 +17,6 @@ logging.basicConfig(
     stream=sys.stdout,  # Log to stdout
 )
 
-# [Rest of your IDS script remains unchanged]
-# Ensure no FileHandlers are added
-
 
 def monitor_processes():
     """
@@ -44,7 +41,11 @@ def monitor_processes():
                     ["pid", "name", "username", "exe", "cmdline", "uids"]
                 ):
                     process_name = proc.info.get("name")
-                    process_info = f"Process: {process_name} (PID: {proc.info['pid']}, User: {proc.info.get('username')}, CMD: {' '.join(proc.info.get('cmdline') or [])})"
+                    process_info = (
+                        f"Process: {process_name} (PID: {proc.info['pid']}, "
+                        f"User: {proc.info.get('username')}, "
+                        f"CMD: {' '.join(proc.info.get('cmdline') or [])})"
+                    )
 
                     # Detect processes running as root that are not whitelisted
                     if (
@@ -119,11 +120,16 @@ class FileMonitorHandler(FileSystemEventHandler):
 
     def __init__(self):
         super().__init__()
-        self.excluded_dirs = [
-            "/host_var_log",
-            "/var/log/ids_app",
-        ]  # Exclude the IDS log directory
-        self.critical_paths = ["/etc/passwd", "/etc/shadow", "/etc/hosts", "/etc/group"]
+        self.excluded_dirs = ["/host_var_log", "/var/log/ids_app"]
+        self.critical_paths = [
+            "/etc/passwd",
+            "/etc/shadow",
+            "/etc/hosts",
+            "/etc/group",
+            "/proc/1/ns/net",
+            "/proc/1/cmdline",
+            "/etc/passwd_test.txt",  # Added for monitoring
+        ]
         self.normalized_critical_paths = [
             os.path.realpath(path) for path in self.critical_paths
         ]
@@ -132,6 +138,7 @@ class FileMonitorHandler(FileSystemEventHandler):
         try:
             event_src_path = os.path.realpath(event.src_path)
 
+            # Exclude monitoring of specified directories
             if any(
                 event_src_path.startswith(os.path.realpath(excluded_dir))
                 for excluded_dir in self.excluded_dirs
@@ -204,7 +211,8 @@ def monitor_ssh_attempts():
         # Start tailing each log file in separate threads
         for ssh_log_path in ssh_log_paths:
             thread = threading.Thread(
-                target=tail_log_file, args=(ssh_log_path, failed_attempts, MAX_ATTEMPTS)
+                target=tail_log_file,
+                args=(ssh_log_path, failed_attempts, MAX_ATTEMPTS),
             )
             thread.daemon = True
             thread.start()
@@ -264,51 +272,35 @@ def tail_log_file(ssh_log_path, failed_attempts, MAX_ATTEMPTS):
         logging.error(f"Critical error in tail_log_file ({ssh_log_path}): {e}")
 
 
-def monitor_container_escape_attempts():
-    """
-    Monitors for potential container escape attempts.
-    """
-    try:
-        logging.info("Monitoring for container escape attempts.")
-
-        # Paths that should not be accessible from within the container
-        sensitive_host_paths = ["/proc/1/ns/net", "/proc/1/cmdline"]
-
-        while True:
-            try:
-                for path in sensitive_host_paths:
-                    if os.path.exists(path):
-                        alert_message = f"Potential container escape attempt detected: Access to {path}"
-                        logging.warning(alert_message)
-                time.sleep(5)
-            except Exception as e:
-                logging.error(f"Error in container escape monitoring loop: {e}")
-                time.sleep(5)
-    except Exception as e:
-        logging.error(f"Critical error in monitor_container_escape_attempts: {e}")
-
-
 def main():
     try:
         logging.info("IDS initialized.")
         threads = []
+
+        # Start process monitoring thread
         process_thread = threading.Thread(target=monitor_processes)
         threads.append(process_thread)
+
+        # Start file monitoring thread
         file_thread = threading.Thread(
             target=monitor_files, args=(["/etc", "/var", "/home", "/tmp"],)
         )
         threads.append(file_thread)
+
+        # Start SSH attempts monitoring thread
         ssh_thread = threading.Thread(target=monitor_ssh_attempts)
         threads.append(ssh_thread)
+
+        # Start process creation monitoring thread
         process_creation_thread = threading.Thread(target=monitor_process_creations)
         threads.append(process_creation_thread)
-        escape_thread = threading.Thread(target=monitor_container_escape_attempts)
-        threads.append(escape_thread)
 
+        # Start all threads
         for thread in threads:
             thread.daemon = True
             thread.start()
 
+        # Keep the main thread alive
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
