@@ -10,34 +10,46 @@ from ids.config import (
     EMAIL_FROM,
     EMAIL_TO,
 )
+import time
 
 
 class EmailAlert:
     def __init__(self):
         self.enabled = EMAIL_ENABLED
 
-    def send_alert(self, subject, message):
+    def send_alert(self, subject, message, retries=3, retry_delay=5):
         if not self.enabled:
             logging.info("Email alerts are disabled.")
             return
 
-        logging.info(f"Attempting to send email alert with subject: {subject}")
-        try:
-            msg = MIMEText(message)
-            msg["Subject"] = subject
-            msg["From"] = EMAIL_FROM
-            msg["To"] = EMAIL_TO
+        logging.info(f"Attempting to send email alert with subject: {subject}.")
+        try_count = 0
 
-            logging.debug(f"Email subject: {subject}")
-            logging.debug(f"Email message: {message}")
+        while try_count < retries:
+            try:
+                msg = MIMEText(message)
+                msg["Subject"] = subject
+                msg["From"] = EMAIL_FROM
+                msg["To"] = EMAIL_TO
 
-            # Set up the server
-            with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-                server.ehlo()
-                server.starttls()
-                server.ehlo()
-                server.login(SMTP_USERNAME, SMTP_PASSWORD)
-                server.sendmail(EMAIL_FROM, EMAIL_TO, msg.as_string())
-                logging.info("Email alert sent successfully.")
-        except Exception as e:
-            logging.error(f"Failed to send email alert: {e}")
+                logging.debug(f"Email subject: {subject}")
+                logging.debug(f"Email message: {message}")
+
+                # Set up the server
+                with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+                    server.ehlo()  # Can be omitted
+                    server.starttls()
+                    server.ehlo()  # Can be omitted
+                    server.login(SMTP_USERNAME, SMTP_PASSWORD)
+                    server.sendmail(EMAIL_FROM, EMAIL_TO, msg.as_string())
+                    logging.info("Email alert sent successfully.")
+                    break  # If successful, exit the retry loop
+
+            except Exception as e:
+                try_count += 1
+                logging.error(f"Failed to send email alert (Attempt {try_count}): {e}")
+                if try_count < retries:
+                    logging.info(f"Retrying in {retry_delay} seconds...")
+                    time.sleep(retry_delay)
+                else:
+                    logging.error(f"Failed to send email after {retries} attempts.")
