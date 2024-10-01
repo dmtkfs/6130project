@@ -119,7 +119,10 @@ class FileMonitorHandler(FileSystemEventHandler):
 
     def __init__(self):
         super().__init__()
-        self.excluded_dirs = ["/host_var_log", "/var/log/ids_app/logs"]
+        self.excluded_dirs = [
+            "/host_var_log",
+            "/var/log/ids_app",
+        ]  # Exclude the IDS log directory
         self.critical_paths = ["/etc/passwd", "/etc/shadow", "/etc/hosts", "/etc/group"]
         self.normalized_critical_paths = [
             os.path.realpath(path) for path in self.critical_paths
