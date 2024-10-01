@@ -56,6 +56,3 @@ ENV IDS_USER_PASSWORD=${IDS_USER_PASSWORD}
 
 # Set Entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
-
-# No CMD needed since Entrypoint handles Supervisord
-CMD []
