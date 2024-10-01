@@ -119,7 +119,7 @@ class FileMonitorHandler(FileSystemEventHandler):
 
     def __init__(self):
         super().__init__()
-        self.excluded_dirs = ["/var/log", "/ids_app/logs"]
+        self.excluded_dirs = ["/host_var_log", "/var/log/ids_app/logs"]
         self.critical_paths = ["/etc/passwd", "/etc/shadow", "/etc/hosts", "/etc/group"]
         self.normalized_critical_paths = [
             os.path.realpath(path) for path in self.critical_paths
@@ -174,15 +174,19 @@ def monitor_files(paths_to_watch):
 
 def monitor_ssh_attempts():
     """
-    Monitors SSH login attempts by tailing the centralized log file.
+    Monitors SSH login attempts by tailing external log files.
     """
     try:
         logging.info("Monitoring SSH login attempts.")
-        ssh_log_path = "/var/log/ids_app/ids.log"  # Centralized log file
+        ssh_log_paths = [
+            "/host_var_log/auth.log",
+            "/host_var_log/syslog",
+        ]  # External logs
 
-        if not os.path.exists(ssh_log_path):
-            logging.error(f"SSH log file does not exist: {ssh_log_path}")
-            return
+        for ssh_log_path in ssh_log_paths:
+            if not os.path.exists(ssh_log_path):
+                logging.error(f"SSH log file does not exist: {ssh_log_path}")
+                return
 
         failed_attempts = {}
         MAX_ATTEMPTS = 5  # Threshold for brute-force detection
@@ -194,6 +198,27 @@ def monitor_ssh_attempts():
             )
             return
 
+        # Start tailing each log file in separate threads
+        for ssh_log_path in ssh_log_paths:
+            thread = threading.Thread(
+                target=tail_log_file, args=(ssh_log_path, failed_attempts, MAX_ATTEMPTS)
+            )
+            thread.daemon = True
+            thread.start()
+
+        # Keep the main thread alive
+        while True:
+            time.sleep(1)
+
+    except Exception as e:
+        logging.error(f"Critical error in monitor_ssh_attempts: {e}")
+
+
+def tail_log_file(ssh_log_path, failed_attempts, MAX_ATTEMPTS):
+    """
+    Tails a single log file and processes SSH login attempts.
+    """
+    try:
         with Popen(
             ["tail", "-F", ssh_log_path],
             stdout=PIPE,
@@ -233,7 +258,7 @@ def monitor_ssh_attempts():
                 except Exception as e:
                     logging.error(f"Error processing SSH log line: {e}")
     except Exception as e:
-        logging.error(f"Critical error in monitor_ssh_attempts: {e}")
+        logging.error(f"Critical error in tail_log_file ({ssh_log_path}): {e}")
 
 
 def monitor_container_escape_attempts():
