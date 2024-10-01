@@ -17,11 +17,9 @@ class EmailAlert:
     def __init__(self):
         self.enabled = EMAIL_ENABLED
 
-    def send_alert(
-        self, subject, message, retries=3, retry_delay=5, level=logging.CRITICAL
-    ):
-        if not self.enabled or level != logging.CRITICAL:
-            logging.info("Email alerts are disabled or the alert is not critical.")
+    def send_alert(self, subject, message, retries=3, retry_delay=5):
+        if not self.enabled:
+            logging.info("Email alerts are disabled.")
             return
 
         logging.info(f"Attempting to send email alert with subject: {subject}.")
