@@ -12,7 +12,7 @@ class ContainerEscapeMonitor:
             "/host_root",
             "/proc/host",
         ]
-        logging.debug("ContainerEscapeMonitor initialized.")
+        logging.info("ContainerEscapeMonitor initialized.")
 
     def start(self):
         logging.info("ContainerEscapeMonitor started.")

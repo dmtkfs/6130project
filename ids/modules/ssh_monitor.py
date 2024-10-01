@@ -7,7 +7,7 @@ class SSHMonitor:
     def __init__(self, alerts):
         self.alerts = alerts
         self.log_file_positions = {}  # Store last read positions
-        logging.debug("SSHMonitor initialized.")
+        logging.info("SSHMonitor initialized.")
 
     def start(self):
         logging.info("SSHMonitor started.")

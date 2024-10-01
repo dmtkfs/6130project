@@ -3,7 +3,6 @@ from watchdog.events import FileSystemEventHandler
 import os
 import logging
 import time
-from threading import Thread
 from ids.config import (
     CRITICAL_PATHS,
     EXCLUDED_DIRS,
@@ -13,11 +12,11 @@ from ids.config import (
 class FileSystemMonitorHandler(FileSystemEventHandler):
     def __init__(self, alerts):
         self.alerts = alerts
-        logging.debug("FileSystemMonitorHandler initialized.")
+        logging.info("FileSystemMonitorHandler initialized.")
 
     def on_any_event(self, event):
         event_src_path = os.path.realpath(event.src_path)
-        logging.debug(f"Detected event: {event.event_type} on {event_src_path}")
+        logging.info(f"Detected event: {event.event_type} on {event_src_path}")
 
         if any(event_src_path.startswith(excluded) for excluded in EXCLUDED_DIRS):
             logging.debug(f"Excluded path detected: {event_src_path}")
@@ -40,7 +39,7 @@ def start_file_system_monitor(alerts):
     for path in set(os.path.dirname(p) for p in CRITICAL_PATHS):
         if os.path.exists(path):
             observer.schedule(event_handler, path=path, recursive=True)
-            logging.debug(f"Scheduled monitoring on path: {path}")
+            logging.info(f"Scheduled monitoring on path: {path}")
         else:
             logging.warning(f"Critical path directory does not exist: {path}")
     observer.start()
