@@ -5,10 +5,8 @@ import time
 
 
 class ContainerEscapeMonitor:
-    def __init__(self, log_alert, email_alert):
-        """Initialize the ContainerEscapeMonitor with separate log and email alerts."""
-        self.log_alert = log_alert  # LogAlert for logging
-        self.email_alert = email_alert  # EmailAlert for email notifications
+    def __init__(self, alerts):
+        self.alerts = alerts
         logging.info("ContainerEscapeMonitor initialized.")
 
     def get_process_info(self, process):
@@ -24,24 +22,34 @@ class ContainerEscapeMonitor:
         if "sudo" in cmdline or "su" in cmdline:
             event_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             message = f"{event_time} - Privilege escalation attempt by {user} (Cmdline: {' '.join(cmdline)})"
+            logging.critical(message)
 
-            # Log the event
-            self.log_alert.send_alert("Privilege Escalation Detected", message)
+            # Use LogAlert for real-time alerts
+            for alert in self.alerts:
+                if isinstance(alert, LogAlert):
+                    alert.send_alert("Privilege Escalation Detected", message)
 
-            # Send an email alert
-            self.email_alert.buffer_log(message)  # Buffer the log for email
+            # Use EmailAlert for buffering logs
+            for alert in self.alerts:
+                if hasattr(alert, "buffer_log"):
+                    alert.buffer_log(message)
 
     def check_container_escape(self, user, cmdline):
         """Detect potential container escape attempts."""
         if "/host/" in cmdline or "nsenter" in cmdline:  # Common escape patterns
             event_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             message = f"{event_time} - Container escape attempt by {user} (Cmdline: {' '.join(cmdline)})"
+            logging.critical(message)
 
-            # Log the event
-            self.log_alert.send_alert("Container Escape Attempt Detected", message)
+            # Use LogAlert for real-time alerts
+            for alert in self.alerts:
+                if isinstance(alert, LogAlert):
+                    alert.send_alert("Container Escape Attempt Detected", message)
 
-            # Send an email alert
-            self.email_alert.buffer_log(message)  # Buffer the log for email
+            # Use EmailAlert for buffering logs
+            for alert in self.alerts:
+                if hasattr(alert, "buffer_log"):
+                    alert.buffer_log(message)
 
     def monitor_processes(self):
         """Monitor all running processes inside the container."""
@@ -53,7 +61,6 @@ class ContainerEscapeMonitor:
                 self.check_container_escape(user, cmdline)
 
     def start(self):
-        """Start monitoring processes for container escape attempts."""
         logging.info("ContainerEscapeMonitor started.")
         while True:
             self.monitor_processes()

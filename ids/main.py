@@ -15,7 +15,6 @@ logging.config.dictConfig(LOGGING_CONFIG)
 
 
 def run_monitor(monitor):
-    """Run the monitoring process in a separate thread."""
     try:
         monitor.start()
     except Exception as e:
@@ -31,16 +30,14 @@ def main():
 
         # Initialize alert mechanisms
         email_alert = EmailAlert()  # EmailAlert buffers and sends periodic emails
-        log_alert = LogAlert()  # LogAlert handles real-time logging
-
-        # Pass the alert systems to the monitors
-        alerts = [log_alert, email_alert]
+        alerts = [
+            LogAlert(),
+            email_alert,
+        ]  # Pass email and log alert systems to monitors
 
         # Initialize monitors for both container and host
         process_monitor = ProcessMonitor(alerts=alerts)
-        ssh_monitor = SSHMonitor(
-            log_alert=log_alert, email_alert=email_alert
-        )  # Separate log and email alerts
+        ssh_monitor = SSHMonitor(alerts=alerts)
         container_escape_monitor = ContainerEscapeMonitor(alerts=alerts)
 
         # Start monitoring threads for each module
@@ -52,7 +49,6 @@ def main():
             ),
         ]
 
-        # Start all threads
         for t in threads:
             t.start()
 
@@ -61,7 +57,7 @@ def main():
 
         # Email scheduling loop
         while True:
-            # Send aggregated emails every 15 minutes
+            # Email is sent every 15 minutes containing all the buffered logs
             email_alert.send_periodic_email()
             time.sleep(900)  # Sleep for 15 minutes (900 seconds)
 
