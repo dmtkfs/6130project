@@ -41,9 +41,6 @@ RUN mkdir -p /var/log/supervisor /var/log/ids_app /var/run/sshd && \
     chown -R root:root /var/log/supervisor && \
     chown -R ids_user:ids_group /var/log/ids_app
 
-# Create the main IDS directory and test_monitor subdirectory
-RUN mkdir -p /var/log/ids_app/test_monitor
-
 # Expose SSH port
 EXPOSE 22222
 
