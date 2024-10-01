@@ -5,7 +5,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      privileged: true
       args:
         IDS_USER_PASSWORD: ${IDS_USER_PASSWORD} # Passing the password to the build
     image: secure_container_refactored
@@ -32,3 +31,4 @@ services:
       HOST_SSH_LOG_FILE_PATH: /host_var_log/auth.log # Host's SSH log path
       HOST_SSH_PORT: ${HOST_SSH_PORT}
       CONTAINER_SSH_PORT: ${CONTAINER_SSH_PORT}
+    privileged: true
