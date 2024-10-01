@@ -30,7 +30,7 @@ def main():
 
         # Initialize alert mechanisms
         alerts = [
-            EmailAlert(rate_limit=5, rate_period=300, aggregate_interval=600),
+            EmailAlert(),  # Remove rate_limit, rate_period, aggregate_interval
             LogAlert(),
         ]
 
