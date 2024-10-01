@@ -3,6 +3,7 @@ import time
 import logging
 import os
 import getpass  # To capture user details
+from ids.config import LOG_FILE_PATH  # Import centralized log file path
 
 
 class ProcessMonitor:
@@ -10,7 +11,7 @@ class ProcessMonitor:
         self.alerts = alerts
         self.poll_interval = poll_interval
         self.known_pids = set()
-        logging.debug("ProcessMonitor initialized.")
+        logging.debug(f"ProcessMonitor initialized with log file path: {LOG_FILE_PATH}")
 
     def start(self):
         logging.info("ProcessMonitor started.")

@@ -2,6 +2,7 @@ import logging
 import os
 import time
 import subprocess
+from ids.config import LOG_FILE_PATH  # Import centralized log file path
 
 
 class ContainerEscapeMonitor:
@@ -10,8 +11,7 @@ class ContainerEscapeMonitor:
         self.sensitive_paths = [
             "/host_root",
             "/proc/host",
-        ]  # Add more sensitive paths as needed
-        self.monitor_interval = 5  # seconds
+        ]
         logging.debug("ContainerEscapeMonitor initialized.")
 
     def start(self):
@@ -20,7 +20,7 @@ class ContainerEscapeMonitor:
             while True:
                 self.check_sensitive_paths()
                 self.monitor_sudo_attempts()
-                time.sleep(self.monitor_interval)
+                time.sleep(5)
         except Exception as e:
             logging.error(f"ContainerEscapeMonitor encountered an error: {e}")
 
@@ -28,7 +28,7 @@ class ContainerEscapeMonitor:
         for path in self.sensitive_paths:
             if os.path.exists(path):
                 timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-                message = f"{timestamp} - Potential container escape attempt detected: Accessed {path}"
+                message = f"{timestamp} - Accessed {path}. Potential container escape attempt."
                 logging.warning(message)
                 for alert in self.alerts:
                     alert.send_alert("Container Escape Attempt Detected", message)
