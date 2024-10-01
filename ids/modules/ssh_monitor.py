@@ -1,7 +1,10 @@
+# ssh_monitor.py
+
 import time
 import logging
 from datetime import datetime
-from ids.alerts.log_alert import LogAlert  # Ensure LogAlert is imported correctly
+from ids.alerts.log_alert import LogAlert
+from ids.alerts.email_alert import EmailAlert
 
 
 class SSHMonitor:
@@ -36,9 +39,9 @@ class SSHMonitor:
 
                         for alert in self.alerts:
                             if isinstance(alert, LogAlert):  # Check if it's LogAlert
-                                alert.send_alert("SSH Log Detected", message)
+                                alert.send_alert("New Process Detected", message)
 
-                            if hasattr(alert, "buffer_log"):  # Buffer for email alerts
+                            if isinstance(alert, EmailAlert):  # Buffer for email alerts
                                 alert.buffer_log(message)
 
                 self.log_file_positions[log_file_path] = log_file.tell()

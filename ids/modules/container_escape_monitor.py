@@ -1,8 +1,11 @@
+# container_escape_monitor.py
+
 import logging
 import psutil
 from datetime import datetime
 import time
-from ids.alerts.log_alert import LogAlert  # Ensure LogAlert is imported correctly
+from ids.alerts.log_alert import LogAlert
+from ids.alerts.email_alert import EmailAlert
 
 
 class ContainerEscapeMonitor:
@@ -42,10 +45,9 @@ class ContainerEscapeMonitor:
 
             for alert in self.alerts:
                 if isinstance(alert, LogAlert):  # Check if it's LogAlert
-                    alert.send_alert("Container Escape Attempt Detected", message)
+                    alert.send_alert("New Process Detected", message)
 
-            for alert in self.alerts:
-                if hasattr(alert, "buffer_log"):  # Buffer for email alerts
+                if isinstance(alert, EmailAlert):  # Buffer for email alerts
                     alert.buffer_log(message)
 
     def monitor_processes(self):
