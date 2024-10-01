@@ -1,7 +1,6 @@
 # main.py
 
 import logging
-import logging.config
 import threading
 import time
 from ids.alerts.email_alert import EmailAlert
@@ -13,8 +12,7 @@ from ids.modules.container_escape_monitor import ContainerEscapeMonitor
 from ids.config import LOGGING_CONFIG, CRITICAL_PATHS, EXCLUDED_DIRS
 import sys  # To handle system exit
 
-
-# Configure logging using dictConfig
+# Configure logging
 logging.config.dictConfig(LOGGING_CONFIG)
 
 
@@ -46,7 +44,9 @@ def main():
         # Initialize monitors
         process_monitor = ProcessMonitor(alerts=alerts)
         ssh_monitor = SSHMonitor(alerts=alerts)
-        file_system_monitor = FileSystemMonitor(alerts=alerts)
+        file_system_monitor = FileSystemMonitor(
+            critical_paths=CRITICAL_PATHS, excluded_dirs=EXCLUDED_DIRS, alerts=alerts
+        )
         container_escape_monitor = ContainerEscapeMonitor(alerts=alerts)
 
         # Start monitoring threads with exception handling
