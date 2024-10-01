@@ -1,7 +1,6 @@
 import logging
 import logging.config
 import threading
-import time
 from ids.alerts.email_alert import EmailAlert
 from ids.alerts.log_alert import LogAlert
 from ids.modules.process_monitor import ProcessMonitor
@@ -10,7 +9,7 @@ from ids.modules.file_system_monitor import start_file_system_monitor
 from ids.modules.container_escape_monitor import ContainerEscapeMonitor
 from ids.config import LOGGING_CONFIG
 
-# Configure logging using dictConfig
+# Configure logging
 logging.config.dictConfig(LOGGING_CONFIG)
 
 
@@ -26,13 +25,10 @@ def run_monitor(monitor):
 
 def main():
     try:
-        logging.info(f"IDS initialized")
+        logging.info("IDS initialized")
 
         # Initialize alert mechanisms
-        alerts = [
-            EmailAlert(),  # Remove rate_limit, rate_period, aggregate_interval
-            LogAlert(),
-        ]
+        alerts = [LogAlert(), EmailAlert()]
 
         # Initialize monitors
         process_monitor = ProcessMonitor(alerts=alerts)

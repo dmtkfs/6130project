@@ -1,12 +1,7 @@
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
-import os
 import logging
 import time
-from ids.config import (
-    CRITICAL_PATHS,
-    EXCLUDED_DIRS,
-)  # Import critical paths and excluded dirs
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 
 class FileSystemMonitorHandler(FileSystemEventHandler):
@@ -15,38 +10,25 @@ class FileSystemMonitorHandler(FileSystemEventHandler):
         logging.info("FileSystemMonitorHandler initialized.")
 
     def on_any_event(self, event):
-        event_src_path = os.path.realpath(event.src_path)
-        logging.info(f"Detected event: {event.event_type} on {event_src_path}")
-
-        if any(event_src_path.startswith(excluded) for excluded in EXCLUDED_DIRS):
-            logging.debug(f"Excluded path detected: {event_src_path}")
-            return  # Ignore excluded paths
-
-        if any(event_src_path.startswith(critical) for critical in CRITICAL_PATHS):
-            if event.event_type in ["created", "deleted", "modified", "moved"]:
-                timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
-                message = (
-                    f"{timestamp} - Critical file {event.event_type}: {event_src_path}"
-                )
-                logging.warning(message)
-                for alert in self.alerts:
-                    alert.send_alert(f"Critical File {event.event_type}", message)
+        event_type = event.event_type
+        event_src_path = event.src_path
+        message = f"Detected event: {event_type} on {event_src_path}"
+        logging.info(message)
+        for alert in self.alerts:
+            alert.send_alert("File System Event Detected", message)
 
 
 def start_file_system_monitor(alerts):
     event_handler = FileSystemMonitorHandler(alerts)
     observer = Observer()
-    for path in set(os.path.dirname(p) for p in CRITICAL_PATHS):
-        if os.path.exists(path):
-            observer.schedule(event_handler, path=path, recursive=True)
-            logging.info(f"Scheduled monitoring on path: {path}")
-        else:
-            logging.warning(f"Critical path directory does not exist: {path}")
+    observer.schedule(event_handler, path="/etc", recursive=True)
     observer.start()
     logging.info("FileSystemMonitor started.")
+
     try:
         while True:
-            time.sleep(1)
+            time.sleep(5)
     except KeyboardInterrupt:
         observer.stop()
+
     observer.join()

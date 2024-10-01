@@ -28,14 +28,10 @@ class EmailAlert:
             msg["From"] = EMAIL_FROM
             msg["To"] = EMAIL_TO
 
-            logging.debug(f"Email subject: {subject}")
-            logging.debug(f"Email message: {message}")
+            logging.info(f"Sending email with subject: {subject}")
 
-            # Set up the server
             with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
-                server.ehlo()  # Can be omitted
                 server.starttls()
-                server.ehlo()  # Can be omitted
                 server.login(SMTP_USERNAME, SMTP_PASSWORD)
                 server.sendmail(EMAIL_FROM, EMAIL_TO, msg.as_string())
                 logging.info("Email alert sent successfully.")
