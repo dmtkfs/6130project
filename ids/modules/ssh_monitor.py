@@ -30,8 +30,11 @@ class SSHMonitor:
                         event_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                         message = f"{event_time} - {source} SSH log: {line.strip()}"
                         logging.critical(message)
+
+                        # Buffer the log for email later
                         for alert in self.alerts:
-                            alert.send_alert(f"{source} SSH Activity Detected", message)
+                            if hasattr(alert, "buffer_log"):
+                                alert.buffer_log(message)
 
                 self.log_file_positions[log_file_path] = log_file.tell()
         except Exception as e:

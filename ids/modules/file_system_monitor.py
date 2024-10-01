@@ -16,8 +16,11 @@ class FileSystemMonitorHandler(FileSystemEventHandler):
         event_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         message = f"{event_time} - Detected event: {event_type} on {event_src_path}"
         logging.info(message)
+
+        # Buffer the log for email later
         for alert in self.alerts:
-            alert.send_alert("File System Event Detected", message)
+            if hasattr(alert, "buffer_log"):
+                alert.buffer_log(message)
 
 
 def start_file_system_monitor(alerts):

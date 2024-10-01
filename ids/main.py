@@ -1,6 +1,7 @@
 import logging
 import logging.config
 import threading
+import time
 from ids.alerts.email_alert import EmailAlert
 from ids.alerts.log_alert import LogAlert
 from ids.modules.process_monitor import ProcessMonitor
@@ -28,7 +29,8 @@ def main():
         logging.info("IDS initialized")
 
         # Initialize alert mechanisms
-        alerts = [LogAlert(), EmailAlert()]
+        email_alert = EmailAlert()
+        alerts = [LogAlert(), email_alert]
 
         # Initialize monitors
         process_monitor = ProcessMonitor(alerts=alerts)
@@ -55,9 +57,10 @@ def main():
         # Start file system monitor in the main thread
         start_file_system_monitor(alerts=alerts)
 
-        # Keep the main thread alive
-        for t in threads:
-            t.join()
+        # Email scheduling loop
+        while True:
+            email_alert.send_periodic_email()
+            time.sleep(60)  # Check every minute if it's time to send an email
 
     except Exception as e:
         logging.critical(f"An unhandled exception occurred: {e}")

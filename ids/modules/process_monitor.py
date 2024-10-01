@@ -32,9 +32,10 @@ class ProcessMonitor:
                 logging.critical(
                     f"Suspicious Process Detected - {event_time} - {proc_info}"
                 )
+
+                # Buffer the log for email later
                 for alert in self.alerts:
-                    alert.send_alert(
-                        "Suspicious Process Detected", f"{event_time} - {proc_info}"
-                    )
+                    if hasattr(alert, "buffer_log"):
+                        alert.buffer_log(f"{event_time} - {proc_info}")
             except (psutil.NoSuchProcess, psutil.AccessDenied):
                 continue

@@ -27,7 +27,10 @@ class ContainerEscapeMonitor:
                 event_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 message = f"{event_time} - Potential container escape attempt detected by {user} (Cmdline: {' '.join(cmdline)})"
                 logging.critical(message)  # Log as CRITICAL
+
+                # Buffer the log for email later
                 for alert in self.alerts:
-                    alert.send_alert("Container Escape Attempt Detected", message)
+                    if hasattr(alert, "buffer_log"):
+                        alert.buffer_log(message)
 
             time.sleep(5)  # Adjust this as needed
