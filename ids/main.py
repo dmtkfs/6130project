@@ -107,7 +107,8 @@ def monitor_processes():
                                 logging.warning(alert_message)
 
                     # Detect container escape attempt
-                    if any(proc.info.get("exe") and "/proc/1/" in proc.info.get("exe")):
+                    exe = proc.info.get("exe")  # Ensure 'exe' is checked separately
+                    if exe and "/proc/1/" in exe:
                         alert_message = (
                             f"Potential container escape detected: {process_info}"
                         )
