@@ -128,7 +128,7 @@ class FileMonitorHandler(FileSystemEventHandler):
             "/etc/group",
             "/proc/1/ns/net",
             "/proc/1/cmdline",
-            "/etc/passwd_test.txt",  # Added for monitoring
+            "/etc/passwd_test.txt",  # Added for monitoring specific file operations
         ]
         self.normalized_critical_paths = [
             os.path.realpath(path) for path in self.critical_paths
