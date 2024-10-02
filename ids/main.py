@@ -19,15 +19,6 @@ logging.basicConfig(
 
 
 def monitor_processes():
-    """
-    Monitors running processes for suspicious activity.
-    Detects:
-      - Processes running as root that are not whitelisted.
-      - Execution of sensitive binaries.
-      - Privilege escalation.
-      - Read operations on critical files via 'cat'.
-      - Container escape attempts.
-    """
     try:
         logging.info("Process monitoring started.")
         SENSITIVE_BINARIES = [
@@ -35,7 +26,7 @@ def monitor_processes():
             "/bin/bash",
             "/bin/sh",
             "/bin/sleep",
-        ]  # Updated to actual binaries present in your container
+        ]
 
         WHITELISTED_PROCESSES = [
             "supervisord",
@@ -48,7 +39,6 @@ def monitor_processes():
             "bash",
         ]
 
-        # Define critical read paths
         CRITICAL_READ_PATHS = [
             "/etc/passwd",
             "/etc/shadow",
@@ -69,9 +59,8 @@ def monitor_processes():
                         f"User: {proc.info.get('username')}, "
                         f"CMD: {' '.join(proc.info.get('cmdline') or [])})"
                     )
-                    logging.debug(f"Checking process: {process_info}")
 
-                    # Detect container escape attempts via nsenter or accessing /proc/1/ns/
+                    # Detect container escape attempts via nsenter or accessing /proc/1/ns/.
                     if "nsenter" in process_name or "/proc/1/ns/" in " ".join(
                         proc.info.get("cmdline", [])
                     ):
@@ -94,7 +83,6 @@ def monitor_processes():
                     # Detect execution of sensitive binaries
                     exe = proc.info.get("exe") or ""
                     exe_realpath = os.path.realpath(exe)
-                    logging.debug(f"Checking sensitive binary: {exe_realpath}")
                     if exe_realpath in SENSITIVE_BINARIES:
                         alert_message = (
                             f"Sensitive binary execution detected: {process_info}"
@@ -103,10 +91,6 @@ def monitor_processes():
 
                     # Detect privilege escalation
                     uids = proc.info.get("uids")
-                    if uids:
-                        logging.debug(
-                            f"UIDs for {process_name}: real={uids.real}, effective={uids.effective}"
-                        )
                     if uids and uids.real != uids.effective:
                         alert_message = f"Privilege escalation detected: {process_info}"
                         logging.warning(alert_message)
@@ -114,7 +98,6 @@ def monitor_processes():
                     # Detect if 'cat' is accessing a critical file
                     if process_name == "cat":
                         cmdline = proc.info.get("cmdline") or []
-                        logging.debug(f"Command line for 'cat' process: {cmdline}")
                         if len(cmdline) >= 2:
                             file_accessed = os.path.realpath(cmdline[1])
                             if file_accessed in CRITICAL_READ_PATHS:
@@ -129,7 +112,7 @@ def monitor_processes():
                         )
                         logging.warning(alert_message)
 
-                time.sleep(1)  # Reduced sleep interval for quicker detection
+                time.sleep(1)
             except Exception as e:
                 logging.error(f"Error in process monitoring loop: {e}")
                 time.sleep(1)
