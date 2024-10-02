@@ -30,15 +30,13 @@ def monitor_processes():
     """
     try:
         logging.info("Process monitoring started.")
-        SENSITIVE_BINARIES = ["/usr/bin/docker", "/usr/bin/runc"]
-        SENSITIVE_PROCESS_NAMES = [
-            "docker",
-            "cat",
-            "ls",
-            "grep",
-            "awk",
-            "sed",
-        ]  # Add more as needed
+        SENSITIVE_BINARIES = [
+            "/usr/bin/python3",
+            "/bin/bash",
+            "/bin/sh",
+            "/bin/sleep",
+        ]  # Updated to actual binaries present in your container
+
         WHITELISTED_PROCESSES = [
             "supervisord",
             "python",
@@ -48,7 +46,6 @@ def monitor_processes():
             "sshd",
             "ids.py",
             "bash",
-            "zsh",
         ]
 
         # Define critical read paths
@@ -94,28 +91,27 @@ def monitor_processes():
                         )
                         logging.warning(alert_message)
 
-                    # Detect execution of sensitive process names
-                    if process_name in [p.lower() for p in SENSITIVE_PROCESS_NAMES]:
-                        # Check if 'cat' is accessing a critical file
-                        if process_name == "cat":
-                            cmdline = proc.info.get("cmdline") or []
-                            if len(cmdline) >= 2:
-                                file_accessed = os.path.realpath(cmdline[1])
-                                if file_accessed in CRITICAL_READ_PATHS:
-                                    alert_message = f"Read operation detected on critical file: {file_accessed} by process: {process_info}"
-                                    logging.warning(alert_message)
-
                     # Detect privilege escalation
                     uids = proc.info.get("uids")
                     if uids and uids.real != uids.effective:
                         alert_message = f"Privilege escalation detected: {process_info}"
                         logging.warning(alert_message)
 
-                    # Detect potential container escape
-                    if any("/proc/1/" in cmd for cmd in proc.info.get("cmdline", [])):
-                        logging.warning(
+                    # Detect if 'cat' is accessing a critical file
+                    if process_name == "cat":
+                        cmdline = proc.info.get("cmdline") or []
+                        if len(cmdline) >= 2:
+                            file_accessed = os.path.realpath(cmdline[1])
+                            if file_accessed in CRITICAL_READ_PATHS:
+                                alert_message = f"Read operation detected on critical file: {file_accessed} by process: {process_info}"
+                                logging.warning(alert_message)
+
+                    # Detect container escape attempt
+                    if any(proc.info.get("exe") and "/proc/1/" in proc.info.get("exe")):
+                        alert_message = (
                             f"Potential container escape detected: {process_info}"
                         )
+                        logging.warning(alert_message)
 
                 time.sleep(1)  # Reduced sleep interval for quicker detection
             except Exception as e:
