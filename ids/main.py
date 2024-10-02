@@ -26,6 +26,7 @@ def monitor_processes():
       - Execution of sensitive binaries.
       - Privilege escalation.
       - Read operations on critical files via 'cat'.
+      - Container escape attempts.
     """
     try:
         logging.info("Process monitoring started.")
@@ -109,6 +110,12 @@ def monitor_processes():
                     if uids and uids.real != uids.effective:
                         alert_message = f"Privilege escalation detected: {process_info}"
                         logging.warning(alert_message)
+
+                    # Detect potential container escape
+                    if any("/proc/1/" in cmd for cmd in proc.info.get("cmdline", [])):
+                        logging.warning(
+                            f"Potential container escape detected: {process_info}"
+                        )
 
                 time.sleep(1)  # Reduced sleep interval for quicker detection
             except Exception as e:
