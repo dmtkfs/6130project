@@ -1,7 +1,3 @@
-Here’s the updated README file in Markdown format:
-
----
-
 # Containerized IDS Application
 
 This project involves building a containerized Intrusion Detection System (IDS) using Docker and Docker Compose. The IDS monitors system activities, detects suspicious behaviors such as SSH login attempts and sensitive file accesses, and provides logging and email alerts.
