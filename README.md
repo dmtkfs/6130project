@@ -54,12 +54,14 @@ This project involves building a containerized Intrusion Detection System (IDS) 
 - **Docker Management:**
   - The container is managed via Docker Compose, using the `deploy.sh` script for automation. This script checks for existing containers, stops and removes them if necessary, then builds and runs a new container.
   - Environment variables are loaded into the container to avoid hardcoding sensitive data.
-  
-- **Testing and Deployment:**
-  - The IDS logs and alerts on critical events such as process creations, file modifications, and SSH login attempts.
-  - Future development includes testing attack scenarios for container escapes to verify that the IDS properly detects and logs such events. We will also add user logging and ensure the app runs as a background service permanently.
 
 ---
+ 
+### 6. **Future Development**
 
-Feel free to add or modify any sections as required!
+  - Active Prevention (IDS to IPS): The next step is to implement a prevention mechanism for one type of attack, transitioning from an Intrusion Detection System (IDS) to an Intrusion Prevention System (IPS). For example, upon detecting an illegal file creation, the system will take an active response such as applying a countermeasure to the user performing the action.
+
+  - SSH IP Banning and "Jail": Implement an automated system to ban IP addresses after multiple failed SSH attempts. The "jail" system will allow us to manage banned IPs, where we can view, unban, or manually add IPs as needed.
+
+  - User Logging (if feasible): We will explore the feasibility of logging user actions within the container. While it's uncertain whether detailed user logging is possible, if achievable, it will be implemented for better auditing.
 
