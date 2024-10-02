@@ -21,10 +21,23 @@ logging.basicConfig(
 def monitor_processes():
     """
     Monitors running processes for suspicious activity.
+    Detects:
+      - Processes running as root that are not whitelisted.
+      - Execution of sensitive binaries.
+      - Privilege escalation.
+      - Read operations on critical files via 'cat'.
     """
     try:
         logging.info("Process monitoring started.")
         SENSITIVE_BINARIES = ["/usr/bin/docker", "/usr/bin/runc"]
+        SENSITIVE_PROCESS_NAMES = [
+            "docker",
+            "cat",
+            "ls",
+            "grep",
+            "awk",
+            "sed",
+        ]  # Add more as needed
         WHITELISTED_PROCESSES = [
             "supervisord",
             "python",
@@ -33,6 +46,18 @@ def monitor_processes():
             "sh",
             "sshd",
             "ids.py",
+            "bash",
+            "zsh",
+        ]
+
+        # Define critical read paths
+        CRITICAL_READ_PATHS = [
+            "/etc/passwd",
+            "/etc/shadow",
+            "/etc/hosts",
+            "/etc/group",
+            "/proc/1/ns/net",
+            "/proc/1/cmdline",
         ]
 
         while True:
@@ -40,7 +65,7 @@ def monitor_processes():
                 for proc in psutil.process_iter(
                     ["pid", "name", "username", "exe", "cmdline", "uids"]
                 ):
-                    process_name = proc.info.get("name")
+                    process_name = proc.info.get("name", "").lower()
                     process_info = (
                         f"Process: {process_name} (PID: {proc.info['pid']}, "
                         f"User: {proc.info.get('username')}, "
@@ -51,7 +76,8 @@ def monitor_processes():
                     if (
                         proc.info.get("username") == "root"
                         and proc.info["pid"] != 1
-                        and process_name not in WHITELISTED_PROCESSES
+                        and process_name
+                        not in [p.lower() for p in WHITELISTED_PROCESSES]
                     ):
                         alert_message = (
                             f"Suspicious root process detected: {process_info}"
@@ -60,11 +86,23 @@ def monitor_processes():
 
                     # Detect execution of sensitive binaries
                     exe = proc.info.get("exe") or ""
-                    if exe in SENSITIVE_BINARIES:
+                    exe_realpath = os.path.realpath(exe)
+                    if exe_realpath in SENSITIVE_BINARIES:
                         alert_message = (
                             f"Sensitive binary execution detected: {process_info}"
                         )
                         logging.warning(alert_message)
+
+                    # Detect execution of sensitive process names
+                    if process_name in [p.lower() for p in SENSITIVE_PROCESS_NAMES]:
+                        # Check if 'cat' is accessing a critical file
+                        if process_name == "cat":
+                            cmdline = proc.info.get("cmdline") or []
+                            if len(cmdline) >= 2:
+                                file_accessed = os.path.realpath(cmdline[1])
+                                if file_accessed in CRITICAL_READ_PATHS:
+                                    alert_message = f"Read operation detected on critical file: {file_accessed} by process: {process_info}"
+                                    logging.warning(alert_message)
 
                     # Detect privilege escalation
                     uids = proc.info.get("uids")
@@ -72,10 +110,10 @@ def monitor_processes():
                         alert_message = f"Privilege escalation detected: {process_info}"
                         logging.warning(alert_message)
 
-                time.sleep(5)
+                time.sleep(1)  # Reduced sleep interval for quicker detection
             except Exception as e:
                 logging.error(f"Error in process monitoring loop: {e}")
-                time.sleep(5)
+                time.sleep(1)
     except Exception as e:
         logging.error(f"Critical error in monitor_processes: {e}")
 
@@ -83,6 +121,7 @@ def monitor_processes():
 def monitor_process_creations():
     """
     Monitors for new process creations.
+    Logs details of new processes, excluding the IDS script itself.
     """
     try:
         logging.info("Process creation monitoring started.")
@@ -116,6 +155,7 @@ def monitor_process_creations():
 class FileMonitorHandler(FileSystemEventHandler):
     """
     Monitors file system events.
+    Logs creation, modification, deletion, and movement of critical files.
     """
 
     def __init__(self):
@@ -126,8 +166,6 @@ class FileMonitorHandler(FileSystemEventHandler):
             "/etc/shadow",
             "/etc/hosts",
             "/etc/group",
-            "/proc/1/ns/net",
-            "/proc/1/cmdline",
             "/etc/passwd_test.txt",  # Added for monitoring specific file operations
         ]
         self.normalized_critical_paths = [
@@ -185,6 +223,7 @@ def monitor_files(paths_to_watch):
 def monitor_ssh_attempts():
     """
     Monitors SSH login attempts by tailing external log files.
+    Logs failed and successful login attempts, and detects possible brute-force attacks.
     """
     try:
         logging.info("Monitoring SSH login attempts.")
