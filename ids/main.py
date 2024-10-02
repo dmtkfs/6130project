@@ -70,6 +70,14 @@ def monitor_processes():
                         f"CMD: {' '.join(proc.info.get('cmdline') or [])})"
                     )
 
+                    # Detect container escape attempts via nsenter or accessing /proc/1/ns/.
+                    if "nsenter" in process_name or "/proc/1/ns/" in " ".join(
+                        proc.info.get("cmdline", [])
+                    ):
+                        logging.warning(
+                            f"Potential container escape detected: {process_info}"
+                        )
+
                     # Detect processes running as root that are not whitelisted
                     if (
                         proc.info.get("username") == "root"
@@ -106,7 +114,7 @@ def monitor_processes():
                                 alert_message = f"Read operation detected on critical file: {file_accessed} by process: {process_info}"
                                 logging.warning(alert_message)
 
-                    # Detect container escape attempt
+                    # Detect container escape attempt by checking /proc/1/
                     exe = proc.info.get("exe")  # Ensure 'exe' is checked separately
                     if exe and "/proc/1/" in exe:
                         alert_message = (
