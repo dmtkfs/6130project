@@ -12,7 +12,7 @@ from subprocess import Popen, PIPE
 
 # Configure logging to stdout
 logging.basicConfig(
-    level=logging.DEBUG,  # Set to DEBUG for more detailed logs
+    level=logging.INFO,  # Set to DEBUG for more detailed logs
     format="%(asctime)s - %(levelname)s - %(message)s",
     stream=sys.stdout,  # Log to stdout
 )
