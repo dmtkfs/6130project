@@ -12,7 +12,7 @@ from subprocess import Popen, PIPE
 
 # Configure logging to stdout
 logging.basicConfig(
-    level=logging.INFO,  # Set to DEBUG for more detailed logs
+    level=logging.DEBUG,  # Set to DEBUG for more detailed logs
     format="%(asctime)s - %(levelname)s - %(message)s",
     stream=sys.stdout,  # Log to stdout
 )
@@ -69,8 +69,9 @@ def monitor_processes():
                         f"User: {proc.info.get('username')}, "
                         f"CMD: {' '.join(proc.info.get('cmdline') or [])})"
                     )
+                    logging.debug(f"Checking process: {process_info}")
 
-                    # Detect container escape attempts via nsenter or accessing /proc/1/ns/.
+                    # Detect container escape attempts via nsenter or accessing /proc/1/ns/
                     if "nsenter" in process_name or "/proc/1/ns/" in " ".join(
                         proc.info.get("cmdline", [])
                     ):
@@ -93,6 +94,7 @@ def monitor_processes():
                     # Detect execution of sensitive binaries
                     exe = proc.info.get("exe") or ""
                     exe_realpath = os.path.realpath(exe)
+                    logging.debug(f"Checking sensitive binary: {exe_realpath}")
                     if exe_realpath in SENSITIVE_BINARIES:
                         alert_message = (
                             f"Sensitive binary execution detected: {process_info}"
@@ -101,6 +103,10 @@ def monitor_processes():
 
                     # Detect privilege escalation
                     uids = proc.info.get("uids")
+                    if uids:
+                        logging.debug(
+                            f"UIDs for {process_name}: real={uids.real}, effective={uids.effective}"
+                        )
                     if uids and uids.real != uids.effective:
                         alert_message = f"Privilege escalation detected: {process_info}"
                         logging.warning(alert_message)
@@ -108,6 +114,7 @@ def monitor_processes():
                     # Detect if 'cat' is accessing a critical file
                     if process_name == "cat":
                         cmdline = proc.info.get("cmdline") or []
+                        logging.debug(f"Command line for 'cat' process: {cmdline}")
                         if len(cmdline) >= 2:
                             file_accessed = os.path.realpath(cmdline[1])
                             if file_accessed in CRITICAL_READ_PATHS:
