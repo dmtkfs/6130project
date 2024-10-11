@@ -52,7 +52,7 @@ EXPOSE 22222
 
 # Update sshd_config to allow ids_user and disable root login
 RUN sed -i 's/#Port 22/Port 22222/' /etc/ssh/sshd_config && \
-    sed -i 's/#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config && \
+    sed -i 's/#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config && \
     sed -i 's/#PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
     echo 'AllowUsers ids_user' >> /etc/ssh/sshd_config
 
