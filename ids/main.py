@@ -54,10 +54,14 @@ def monitor_processes():
                     ["pid", "name", "username", "exe", "cmdline", "uids"]
                 ):
                     process_name = proc.info.get("name", "").lower()
+                    cmdline = proc.info.get("cmdline")
+                    if not isinstance(cmdline, (list, tuple)):
+                        cmdline = []  # Ensure cmdline is always an iterable
+
                     process_info = (
                         f"Process: {process_name} (PID: {proc.info['pid']}, "
                         f"User: {proc.info.get('username')}, "
-                        f"CMD: {' '.join(proc.info.get('cmdline') or [])})"
+                        f"CMD: {' '.join(cmdline)})"
                     )
 
                     # Detect container escape attempts via nsenter or accessing /proc/1/ns/.
