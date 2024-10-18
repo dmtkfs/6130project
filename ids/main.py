@@ -48,6 +48,11 @@ def monitor_processes():
             "/proc/1/cmdline",
         ]
 
+        # Normalize critical paths to their real paths
+        CRITICAL_READ_PATHS_REALPATH = [
+            os.path.realpath(p) for p in CRITICAL_READ_PATHS
+        ]
+
         while True:
             try:
                 for proc in psutil.process_iter(
@@ -95,17 +100,30 @@ def monitor_processes():
                         alert_message = f"Privilege escalation detected: {process_info}"
                         logging.warning(alert_message)
 
-                    # Log permission-denied attempts when critical paths are accessed
+                    # Monitor for processes attempting to access critical files
                     cmdline = proc.info.get("cmdline", [])
-                    if len(cmdline) > 1 and "cat" in process_name:
-                        file_accessed = os.path.realpath(cmdline[1])
-                        if file_accessed in CRITICAL_READ_PATHS:
-                            try:
-                                with open(file_accessed, "r") as file:
-                                    pass  # Check if file can be read
-                            except PermissionError:
-                                alert_message = f"Permission denied while accessing: {file_accessed} by {process_info}"
+                    for arg in cmdline:
+                        # Resolve the real path of the argument
+                        arg_realpath = os.path.realpath(arg)
+                        if arg_realpath in CRITICAL_READ_PATHS_REALPATH:
+                            alert_message = f"Process attempting to access critical file: {process_info}"
+                            logging.warning(alert_message)
+                            break  # No need to check other args if one is critical
+
+                    # Check open files of the process
+                    try:
+                        open_files = proc.open_files()
+                        for f in open_files:
+                            file_path = os.path.realpath(f.path)
+                            if file_path in CRITICAL_READ_PATHS_REALPATH:
+                                alert_message = (
+                                    f"Process has critical file open: {process_info}"
+                                )
                                 logging.warning(alert_message)
+                                break  # No need to check other files
+                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                        # Process terminated or access denied to its file descriptors
+                        continue
 
                 time.sleep(1)
             except Exception as e:
