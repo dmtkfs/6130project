@@ -172,8 +172,8 @@ class FileMonitorHandler(FileSystemEventHandler):
             "/etc/shadow",
             "/etc/hosts",
             "/etc/group",
-            "/etc/passwd_test.txt",  # Added for monitoring specific file operations
-            "/tmp/",
+            "/etc/passwd_test.txt",
+            "/tmp",  # Removed trailing slash for more generalized path matching
         ]
         self.normalized_critical_paths = [
             os.path.realpath(path) for path in self.critical_paths
@@ -182,21 +182,31 @@ class FileMonitorHandler(FileSystemEventHandler):
     def on_any_event(self, event):
         try:
             event_src_path = os.path.realpath(event.src_path)
+            logging.debug(f"Detected event: {event.event_type} on {event_src_path}")
 
             # Exclude monitoring of specified directories
             if any(
                 event_src_path.startswith(os.path.realpath(excluded_dir))
                 for excluded_dir in self.excluded_dirs
             ):
+                logging.info(f"Ignoring event on excluded path: {event_src_path}")
                 return
 
             if not event.is_directory:
-                if event_src_path in self.normalized_critical_paths:
+                # Check if the event is happening in a critical path (including subdirectories)
+                if any(
+                    event_src_path.startswith(path)
+                    for path in self.normalized_critical_paths
+                ):
                     if event.event_type in ("modified", "deleted", "created", "moved"):
                         alert_message = (
                             f"Critical file {event.event_type}: {event_src_path}"
                         )
                         logging.warning(alert_message)
+                    else:
+                        logging.info(
+                            f"Non-critical event: {event.event_type} on {event_src_path}"
+                        )
         except Exception as e:
             logging.error(f"Error in file system event handling: {e}")
 
@@ -211,7 +221,10 @@ def monitor_files(paths_to_watch):
         observer = Observer()
         for path in paths_to_watch:
             if os.path.exists(path):
-                observer.schedule(event_handler, path=path, recursive=True)
+                observer.schedule(
+                    event_handler, path=path, recursive=True
+                )  # Set recursive to True
+                logging.info(f"Monitoring path: {path}")
             else:
                 logging.warning(f"Path does not exist and will be skipped: {path}")
         observer.start()
