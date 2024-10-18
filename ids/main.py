@@ -173,27 +173,30 @@ class FileMonitorHandler(FileSystemEventHandler):
             "/etc/hosts",
             "/etc/group",
             "/etc/passwd_test.txt",
-            "/tmp",  # Removed trailing slash for more generalized path matching
+            "/tmp",
         ]
         self.normalized_critical_paths = [
             os.path.realpath(path) for path in self.critical_paths
+        ]
+        self.normalized_excluded_dirs = [
+            os.path.realpath(path) for path in self.excluded_dirs
         ]
 
     def on_any_event(self, event):
         try:
             event_src_path = os.path.realpath(event.src_path)
-            logging.debug(f"Detected event: {event.event_type} on {event_src_path}")
 
-            # Exclude monitoring of specified directories
+            # Check if the event is in an excluded directory
             if any(
-                event_src_path.startswith(os.path.realpath(excluded_dir))
-                for excluded_dir in self.excluded_dirs
+                event_src_path.startswith(excluded_dir)
+                for excluded_dir in self.normalized_excluded_dirs
             ):
-                logging.info(f"Ignoring event on excluded path: {event_src_path}")
+                # Lower log level for excluded paths to DEBUG to avoid spam
+                logging.debug(f"Ignoring event on excluded path: {event_src_path}")
                 return
 
             if not event.is_directory:
-                # Check if the event is happening in a critical path (including subdirectories)
+                # Check if the event is happening in a critical path
                 if any(
                     event_src_path.startswith(path)
                     for path in self.normalized_critical_paths
@@ -203,10 +206,10 @@ class FileMonitorHandler(FileSystemEventHandler):
                             f"Critical file {event.event_type}: {event_src_path}"
                         )
                         logging.warning(alert_message)
-                    else:
-                        logging.info(
-                            f"Non-critical event: {event.event_type} on {event_src_path}"
-                        )
+                else:
+                    logging.info(
+                        f"Non-critical event: {event.event_type} on {event_src_path}"
+                    )
         except Exception as e:
             logging.error(f"Error in file system event handling: {e}")
 
