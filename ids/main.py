@@ -19,7 +19,6 @@ logging.basicConfig(
 
 
 def monitor_processes():
-    """Monitor processes inside the container for suspicious activity."""
     try:
         logging.info("Process monitoring started.")
         SENSITIVE_BINARIES = [
@@ -52,30 +51,19 @@ def monitor_processes():
         while True:
             try:
                 for proc in psutil.process_iter(
-                    ["pid", "name", "username", "exe", "cmdline", "uids"]
+                    ["pid", "name", "username", "exe", "cmdline", "uids", "status"]
                 ):
                     process_name = proc.info.get("name", "").lower()
-
-                    # Retrieve the command line of the process and ensure it is iterable
-                    cmdline = proc.info.get("cmdline")
-                    logging.debug(
-                        f"Retrieved cmdline for PID {proc.info['pid']}: {cmdline}"
-                    )
-
-                    if not isinstance(cmdline, (list, tuple)):
-                        logging.warning(
-                            f"Cmdline for PID {proc.info['pid']} is not iterable: {cmdline}"
-                        )
-                        cmdline = []  # Ensure cmdline is iterable
-
                     process_info = (
                         f"Process: {process_name} (PID: {proc.info['pid']}, "
-                        f"User: {proc.info.get('username', 'unknown')}, "
-                        f"CMD: {' '.join(cmdline)})"
+                        f"User: {proc.info.get('username')}, "
+                        f"CMD: {' '.join(proc.info.get('cmdline') or [])})"
                     )
 
-                    # Detect container escape attempts via nsenter or accessing /proc/1/ns/
-                    if "nsenter" in process_name or "/proc/1/ns/" in " ".join(cmdline):
+                    # Detect container escape attempts via nsenter or accessing /proc/1/ns/.
+                    if "nsenter" in process_name or "/proc/1/ns/" in " ".join(
+                        proc.info.get("cmdline", [])
+                    ):
                         logging.warning(
                             f"Potential container escape detected: {process_info}"
                         )
@@ -107,13 +95,16 @@ def monitor_processes():
                         alert_message = f"Privilege escalation detected: {process_info}"
                         logging.warning(alert_message)
 
-                    # Detect if 'cat' is accessing a critical file
-                    if process_name == "cat":
-                        cmdline = proc.info.get("cmdline") or []
-                        if len(cmdline) >= 2:
-                            file_accessed = os.path.realpath(cmdline[1])
-                            if file_accessed in CRITICAL_READ_PATHS:
-                                alert_message = f"Read operation detected on critical file: {file_accessed} by process: {process_info}"
+                    # Log permission-denied attempts when critical paths are accessed
+                    cmdline = proc.info.get("cmdline", [])
+                    if len(cmdline) > 1 and "cat" in process_name:
+                        file_accessed = os.path.realpath(cmdline[1])
+                        if file_accessed in CRITICAL_READ_PATHS:
+                            try:
+                                with open(file_accessed, "r") as file:
+                                    pass  # Check if file can be read
+                            except PermissionError:
+                                alert_message = f"Permission denied while accessing: {file_accessed} by {process_info}"
                                 logging.warning(alert_message)
 
                 time.sleep(1)
