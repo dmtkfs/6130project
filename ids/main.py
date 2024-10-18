@@ -19,6 +19,7 @@ logging.basicConfig(
 
 
 def monitor_processes():
+    """Monitor processes inside the container for suspicious activity."""
     try:
         logging.info("Process monitoring started.")
         SENSITIVE_BINARIES = [
@@ -54,20 +55,27 @@ def monitor_processes():
                     ["pid", "name", "username", "exe", "cmdline", "uids"]
                 ):
                     process_name = proc.info.get("name", "").lower()
+
+                    # Retrieve the command line of the process and ensure it is iterable
                     cmdline = proc.info.get("cmdline")
+                    logging.debug(
+                        f"Retrieved cmdline for PID {proc.info['pid']}: {cmdline}"
+                    )
+
                     if not isinstance(cmdline, (list, tuple)):
-                        cmdline = []  # Ensure cmdline is always an iterable
+                        logging.warning(
+                            f"Cmdline for PID {proc.info['pid']} is not iterable: {cmdline}"
+                        )
+                        cmdline = []  # Ensure cmdline is iterable
 
                     process_info = (
                         f"Process: {process_name} (PID: {proc.info['pid']}, "
-                        f"User: {proc.info.get('username')}, "
+                        f"User: {proc.info.get('username', 'unknown')}, "
                         f"CMD: {' '.join(cmdline)})"
                     )
 
-                    # Detect container escape attempts via nsenter or accessing /proc/1/ns/.
-                    if "nsenter" in process_name or "/proc/1/ns/" in " ".join(
-                        proc.info.get("cmdline", [])
-                    ):
+                    # Detect container escape attempts via nsenter or accessing /proc/1/ns/
+                    if "nsenter" in process_name or "/proc/1/ns/" in " ".join(cmdline):
                         logging.warning(
                             f"Potential container escape detected: {process_info}"
                         )
@@ -107,14 +115,6 @@ def monitor_processes():
                             if file_accessed in CRITICAL_READ_PATHS:
                                 alert_message = f"Read operation detected on critical file: {file_accessed} by process: {process_info}"
                                 logging.warning(alert_message)
-
-                    # Detect container escape attempt by checking /proc/1/
-                    exe = proc.info.get("exe")  # Ensure 'exe' is checked separately
-                    if exe and "/proc/1/" in exe:
-                        alert_message = (
-                            f"Potential container escape detected: {process_info}"
-                        )
-                        logging.warning(alert_message)
 
                 time.sleep(1)
             except Exception as e:
@@ -173,6 +173,7 @@ class FileMonitorHandler(FileSystemEventHandler):
             "/etc/hosts",
             "/etc/group",
             "/etc/passwd_test.txt",  # Added for monitoring specific file operations
+            "/tmp/",
         ]
         self.normalized_critical_paths = [
             os.path.realpath(path) for path in self.critical_paths
