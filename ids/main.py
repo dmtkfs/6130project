@@ -276,17 +276,16 @@ def monitor_ssh_attempts():
         blacklisted_ips = load_blacklisted_ips()
 
         failed_attempts = defaultdict(int)
-        MAX_ATTEMPTS = FAILED_ATTEMPTS_THRESHOLD
 
         # Regular expressions to match SSH log entries
         failed_login_pattern = re.compile(
-            r".*sshd\[\d+\]: Failed password for (?:invalid user )?(.*) from (\d+\.\d+\.\d+\.\d+)"
+            r"Failed password for (?:invalid user )?(.*) from (\d+\.\d+\.\d+\.\d+) port \d+"
         )
         invalid_user_pattern = re.compile(
-            r".*sshd\[\d+\]: Invalid user (.*) from (\d+\.\d+\.\d+\.\d+)"
+            r"Invalid user (.*) from (\d+\.\d+\.\d+\.\d+) port \d+"
         )
         accepted_login_pattern = re.compile(
-            r".*sshd\[\d+\]: Accepted password for (.*) from (\d+\.\d+\.\d+\.\d+)"
+            r"Accepted password for (.*) from (\d+\.\d+\.\d+\.\d+) port \d+"
         )
 
         # Open the shared log file
@@ -301,39 +300,38 @@ def monitor_ssh_attempts():
 
                 # Process the log line
                 ip_address = None
-                if "sshd" in line:
-                    if "Failed password" in line:
-                        match = failed_login_pattern.search(line)
-                        if match:
-                            user = match.group(1)
-                            ip_address = match.group(2)
-                            failed_attempts[ip_address] += 1
-                            logging.info(
-                                f"Failed login attempt for user '{user}' from {ip_address}. Count: {failed_attempts[ip_address]}"
-                            )
+                if "Failed password" in line:
+                    match = failed_login_pattern.search(line)
+                    if match:
+                        user = match.group(1)
+                        ip_address = match.group(2)
+                        failed_attempts[ip_address] += 1
+                        logging.info(
+                            f"Failed login attempt for user '{user}' from {ip_address}. Count: {failed_attempts[ip_address]}"
+                        )
 
-                    elif "Invalid user" in line:
-                        match = invalid_user_pattern.search(line)
-                        if match:
-                            user = match.group(1)
-                            ip_address = match.group(2)
-                            failed_attempts[ip_address] += 1
-                            logging.info(
-                                f"Invalid user '{user}' login attempt from {ip_address}. Count: {failed_attempts[ip_address]}"
-                            )
+                elif "Invalid user" in line:
+                    match = invalid_user_pattern.search(line)
+                    if match:
+                        user = match.group(1)
+                        ip_address = match.group(2)
+                        failed_attempts[ip_address] += 1
+                        logging.info(
+                            f"Invalid user '{user}' login attempt from {ip_address}. Count: {failed_attempts[ip_address]}"
+                        )
 
-                    elif "Accepted password" in line:
-                        match = accepted_login_pattern.search(line)
-                        if match:
-                            user = match.group(1)
-                            ip_address = match.group(2)
-                            # Reset failed attempts on successful login
-                            if ip_address in failed_attempts:
-                                del failed_attempts[ip_address]
-                            logging.info(
-                                f"Successful login for user '{user}' from {ip_address}"
-                            )
-                            continue  # Successful login, no action needed
+                elif "Accepted password" in line:
+                    match = accepted_login_pattern.search(line)
+                    if match:
+                        user = match.group(1)
+                        ip_address = match.group(2)
+                        # Reset failed attempts on successful login
+                        if ip_address in failed_attempts:
+                            del failed_attempts[ip_address]
+                        logging.info(
+                            f"Successful login for user '{user}' from {ip_address}"
+                        )
+                        continue  # Successful login, no action needed
 
                 # Check if IP should be blacklisted
                 if ip_address and should_blacklist_ip(
