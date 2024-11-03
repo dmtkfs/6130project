@@ -47,6 +47,13 @@ RUN touch /var/log/ids_app/ids.log && \
     chown root:ids_group /var/log/ids_app/ids.log && \
     chmod 664 /var/log/ids_app/ids.log
 
+# Set build arguments
+ARG IDS_USER_PASSWORD
+ARG CONTAINER_SSH_PORT
+
+# Set environment variables
+ENV CONTAINER_SSH_PORT ${CONTAINER_SSH_PORT}
+
 # Expose SSH port
 EXPOSE ${CONTAINER_SSH_PORT}
 
@@ -57,7 +64,6 @@ RUN sed -i "s/#Port 22/Port ${CONTAINER_SSH_PORT}/" /etc/ssh/sshd_config && \
     echo 'AllowUsers ids_user' >> /etc/ssh/sshd_config
 
 # Set user password
-ARG IDS_USER_PASSWORD
 RUN echo "ids_user:${IDS_USER_PASSWORD}" | chpasswd
 
 # Set Entrypoint
