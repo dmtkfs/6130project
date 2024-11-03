@@ -11,15 +11,18 @@ services:
     ports:
       - "${HOST_SSH_PORT}:${CONTAINER_SSH_PORT}" # Map host port to container port
     volumes:
-      - /var/log/ids_app:/var/log/ids_app
+      - ids_app_data:/var/log/ids_app # Use a Docker-managed volume
     restart: unless-stopped
     env_file:
       - .env
     environment:
       IDS_USER_PASSWORD: ${IDS_USER_PASSWORD}
-      LOG_FILE_PATH: ${LOG_FILE_PATH}
-      SSH_LOG_PATH: ${SSH_LOG_PATH}
-      BLACKLIST_FILE: ${BLACKLIST_FILE}
+      LOG_FILE_PATH: /var/log/ids_app/ids.log
+      BLACKLIST_FILE: /var/log/ids_app/blacklist.txt
       FAILED_ATTEMPTS_THRESHOLD: ${FAILED_ATTEMPTS_THRESHOLD}
       SSHD_CONFIG_PATH: ${SSHD_CONFIG_PATH}
     privileged: true
+
+volumes:
+  ids_app_data:
+    driver: local

@@ -37,24 +37,8 @@ COPY entrypoint.sh /entrypoint.sh
 # Ensure Entrypoint script is executable
 RUN chmod +x /entrypoint.sh
 
-# Create log directories and set permissions
-RUN mkdir -p /var/log/supervisor /var/log/ids_app /var/run/sshd && \
-    chown -R root:ids_group /var/log/supervisor /var/log/ids_app && \
-    chmod -R 775 /var/log/supervisor /var/log/ids_app
-
-# Create and set permissions for the centralized log file
-RUN touch /var/log/ids_app/ids.log && \
-    chown root:ids_group /var/log/ids_app/ids.log && \
-    chmod 664 /var/log/ids_app/ids.log
-
-# Set build arguments
-ARG IDS_USER_PASSWORD
-ARG CONTAINER_SSH_PORT
-
-# Set environment variables
-ENV CONTAINER_SSH_PORT ${CONTAINER_SSH_PORT}
-
 # Expose SSH port
+ARG CONTAINER_SSH_PORT
 EXPOSE ${CONTAINER_SSH_PORT}
 
 # Update sshd_config to allow ids_user and set the correct port
@@ -65,6 +49,7 @@ RUN sed -i "s/#Port 22/Port ${CONTAINER_SSH_PORT}/" /etc/ssh/sshd_config && \
     echo 'AllowUsers ids_user' >> /etc/ssh/sshd_config
 
 # Set user password
+ARG IDS_USER_PASSWORD
 RUN echo "ids_user:${IDS_USER_PASSWORD}" | chpasswd
 
 # Set Entrypoint

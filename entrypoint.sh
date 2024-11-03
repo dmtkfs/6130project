@@ -6,8 +6,6 @@ if [ -n "$LOG_FILE_PATH" ]; then
     mkdir -p $(dirname $LOG_FILE_PATH)
 fi
 
-chown -R root:ids_group /var/log/supervisor
-
 # Set the password for ids_user if provided
 if [ -n "$IDS_USER_PASSWORD" ]; then
     echo "ids_user:${IDS_USER_PASSWORD}" | chpasswd

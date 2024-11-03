@@ -21,7 +21,7 @@ logging.basicConfig(
 # Global Variables (load from environment)
 BLACKLIST_FILE = os.getenv("BLACKLIST_FILE", "/var/log/ids_app/blacklist.txt")
 FAILED_ATTEMPTS_THRESHOLD = int(os.getenv("FAILED_ATTEMPTS_THRESHOLD", "3"))
-SSH_LOG_PATH = os.getenv("SSH_LOG_PATH", "/var/log/messages")
+SSH_LOG_PATH = LOG_FILE_PATH  # SSH logs are in the same file
 SSHD_CONFIG_PATH = os.getenv("SSHD_CONFIG_PATH", "/etc/ssh/sshd_config")
 
 
@@ -349,6 +349,8 @@ def monitor_ssh_attempts():
 
 def load_blacklisted_ips():
     """Load blacklisted IPs from the blacklist file."""
+    if not os.path.exists(BLACKLIST_FILE):
+        open(BLACKLIST_FILE, "w").close()
     with open(BLACKLIST_FILE, "r") as f:
         return set(line.strip() for line in f if line.strip())
 
