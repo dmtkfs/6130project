@@ -9,6 +9,7 @@ import re
 import os
 from subprocess import call
 from collections import defaultdict
+import signal  # Added import signal
 
 # Configure logging
 LOG_FILE_PATH = os.getenv("LOG_FILE_PATH", "/var/log/ids_app/ids.log")
@@ -272,9 +273,6 @@ def monitor_ssh_attempts():
         if not os.path.exists(BLACKLIST_FILE):
             open(BLACKLIST_FILE, "w").close()
 
-        # Load existing blacklisted IPs
-        blacklisted_ips = load_blacklisted_ips()
-
         failed_attempts = defaultdict(int)
 
         # Regular expressions to match SSH log entries
@@ -297,6 +295,9 @@ def monitor_ssh_attempts():
                 if not line:
                     time.sleep(0.1)
                     continue
+
+                # Load existing blacklisted IPs
+                blacklisted_ips = load_blacklisted_ips()
 
                 # Process the log line
                 ip_address = None
@@ -340,6 +341,15 @@ def monitor_ssh_attempts():
                     blacklist_ip(ip_address, blacklisted_ips)
                     update_sshd_config(blacklisted_ips)
                     reload_ssh_service()
+                else:
+                    # Update sshd_config if blacklisted_ips has changed
+                    previous_blacklisted_ips = getattr(
+                        monitor_ssh_attempts, "previous_blacklisted_ips", set()
+                    )
+                    if blacklisted_ips != previous_blacklisted_ips:
+                        update_sshd_config(blacklisted_ips)
+                        reload_ssh_service()
+                        monitor_ssh_attempts.previous_blacklisted_ips = blacklisted_ips
 
     except Exception as e:
         logging.error(f"Critical error in monitor_ssh_attempts: {e}")
@@ -408,17 +418,14 @@ def update_sshd_config(blacklisted_ips):
 def reload_ssh_service():
     """Reload the SSH service to apply configuration changes."""
     try:
-        # Since we're using supervisord, send SIGHUP to sshd
-        sshd_pid_file = "/var/run/sshd.pid"
-        if os.path.exists(sshd_pid_file):
-            with open(sshd_pid_file, "r") as f:
-                sshd_pid = int(f.read().strip())
-            os.kill(sshd_pid, 1)  # Send SIGHUP to sshd
-            logging.info("SSH service reloaded successfully.")
+        # Restart sshd via supervisord
+        result = call(["supervisorctl", "restart", "sshd"])
+        if result == 0:
+            logging.info("SSH service restarted successfully via supervisord.")
         else:
-            logging.error("sshd PID file not found.")
+            logging.error("Failed to restart SSH service via supervisord.")
     except Exception as e:
-        logging.error(f"Error reloading SSH service: {e}")
+        logging.error(f"Error restarting SSH service via supervisord: {e}")
 
 
 def main():
