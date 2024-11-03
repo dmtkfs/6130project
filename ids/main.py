@@ -11,18 +11,19 @@ import os
 from subprocess import Popen, PIPE, call
 from collections import defaultdict
 
-# Configure logging to stdout
+# Configure logging
+LOG_FILE_PATH = os.getenv("LOG_FILE_PATH", "/var/log/ids_app/ids.log")
 logging.basicConfig(
-    level=logging.INFO,  # Set to DEBUG for more detailed logs
+    level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
-    stream=sys.stdout,  # Log to stdout
+    handlers=[logging.FileHandler(LOG_FILE_PATH), logging.StreamHandler(sys.stdout)],
 )
 
-# Global Variables
-BLACKLIST_FILE = "/var/log/ids_app/blacklist.txt"
-FAILED_ATTEMPTS_THRESHOLD = 3
-SSH_LOG_PATH = "/var/log/auth.log"
-SSHD_CONFIG_PATH = "/etc/ssh/sshd_config"
+# Global Variables (load from environment)
+BLACKLIST_FILE = os.getenv("BLACKLIST_FILE", "/var/log/ids_app/blacklist.txt")
+FAILED_ATTEMPTS_THRESHOLD = int(os.getenv("FAILED_ATTEMPTS_THRESHOLD", "3"))
+SSH_LOG_PATH = os.getenv("SSH_LOG_PATH", "/var/log/auth.log")
+SSHD_CONFIG_PATH = os.getenv("SSHD_CONFIG_PATH", "/etc/ssh/sshd_config")
 
 
 def monitor_processes():

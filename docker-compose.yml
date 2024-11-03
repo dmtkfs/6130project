@@ -8,24 +8,19 @@ services:
     image: secure_container_refactored
     container_name: sec_app_container
     ports:
-      - "22222:22222" # Mapping host port 22222 to container port 22222 for container SSH access
+      - "${HOST_SSH_PORT}:${CONTAINER_SSH_PORT}" # Use variables from .env
     volumes:
       - /var/log/auth.log:/host_var_log/auth.log:ro # Mount host's auth.log as read-only
       - /var/log/syslog:/host_var_log/syslog:ro # Mount host's syslog (processes)
       - /var/log/ids_app:/var/log/ids_app # Container logs (for IDS app)
     restart: unless-stopped
     env_file:
-      - .env
+      - .env # Load environment variables from the .env file
     environment:
-      EMAIL_ENABLED: ${EMAIL_ENABLED}
-      SMTP_SERVER: ${SMTP_SERVER}
-      SMTP_PORT: ${SMTP_PORT}
-      SMTP_USERNAME: ${SMTP_USERNAME}
-      SMTP_PASSWORD: ${SMTP_PASSWORD}
-      EMAIL_FROM: ${EMAIL_FROM}
-      EMAIL_TO: ${EMAIL_TO}
       IDS_USER_PASSWORD: ${IDS_USER_PASSWORD}
-      LOG_FILE_PATH: /var/log/ids_app/ids.log # One consolidated log file for all monitoring outputs
-      HOST_SSH_PORT: ${HOST_SSH_PORT}
-      CONTAINER_SSH_PORT: ${CONTAINER_SSH_PORT}
+      LOG_FILE_PATH: ${LOG_FILE_PATH}
+      SSH_LOG_PATH: ${SSH_LOG_PATH}
+      BLACKLIST_FILE: ${BLACKLIST_FILE}
+      FAILED_ATTEMPTS_THRESHOLD: ${FAILED_ATTEMPTS_THRESHOLD}
+      SSHD_CONFIG_PATH: ${SSHD_CONFIG_PATH}
     privileged: true
