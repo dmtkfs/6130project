@@ -6,9 +6,8 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 import threading
 import re
-import shutil
 import os
-from subprocess import Popen, PIPE, call
+from subprocess import call
 from collections import defaultdict
 
 # Configure logging
@@ -22,7 +21,7 @@ logging.basicConfig(
 # Global Variables (load from environment)
 BLACKLIST_FILE = os.getenv("BLACKLIST_FILE", "/var/log/ids_app/blacklist.txt")
 FAILED_ATTEMPTS_THRESHOLD = int(os.getenv("FAILED_ATTEMPTS_THRESHOLD", "3"))
-SSH_LOG_PATH = os.getenv("SSH_LOG_PATH", "/var/log/auth.log")
+SSH_LOG_PATH = os.getenv("SSH_LOG_PATH", "/var/log/messages")
 SSHD_CONFIG_PATH = os.getenv("SSHD_CONFIG_PATH", "/etc/ssh/sshd_config")
 
 
@@ -183,7 +182,7 @@ class FileMonitorHandler(FileSystemEventHandler):
 
     def __init__(self):
         super().__init__()
-        self.excluded_dirs = ["/host_var_log", "/var/log/ids_app"]
+        self.excluded_dirs = ["/var/log/ids_app"]
         self.critical_paths = [
             "/etc/passwd",
             "/etc/shadow",
@@ -262,7 +261,7 @@ def monitor_files(paths_to_watch):
 
 def monitor_ssh_attempts():
     """
-    Monitors SSH login attempts by tailing log files.
+    Monitors SSH login attempts by reading from the shared log file.
     Logs failed and successful login attempts, detects possible brute-force attacks,
     and implements IP jail functionality.
     """
@@ -281,14 +280,16 @@ def monitor_ssh_attempts():
 
         # Regular expressions to match SSH log entries
         failed_login_pattern = re.compile(
-            r"Failed password for .* from (\d+\.\d+\.\d+\.\d+)"
+            r".*sshd\[\d+\]: Failed password for (?:invalid user )?(.*) from (\d+\.\d+\.\d+\.\d+)"
         )
-        invalid_user_pattern = re.compile(r"Invalid user .* from (\d+\.\d+\.\d+\.\d+)")
+        invalid_user_pattern = re.compile(
+            r".*sshd\[\d+\]: Invalid user (.*) from (\d+\.\d+\.\d+\.\d+)"
+        )
         accepted_login_pattern = re.compile(
-            r"Accepted password for .* from (\d+\.\d+\.\d+\.\d+)"
+            r".*sshd\[\d+\]: Accepted password for (.*) from (\d+\.\d+\.\d+\.\d+)"
         )
 
-        # Open the SSH log file
+        # Open the shared log file
         with open(SSH_LOG_PATH, "r") as log_file:
             # Seek to the end of the file
             log_file.seek(0, os.SEEK_END)
@@ -298,32 +299,41 @@ def monitor_ssh_attempts():
                     time.sleep(0.1)
                     continue
 
-                # Check for failed login attempts
-                failed_login_match = failed_login_pattern.search(line)
-                invalid_user_match = invalid_user_pattern.search(line)
-                accepted_login_match = accepted_login_pattern.search(line)
-
+                # Process the log line
                 ip_address = None
-                if failed_login_match:
-                    ip_address = failed_login_match.group(1)
-                    failed_attempts[ip_address] += 1
-                    logging.info(
-                        f"Failed login attempt from {ip_address}. Count: {failed_attempts[ip_address]}"
-                    )
+                if "sshd" in line:
+                    if "Failed password" in line:
+                        match = failed_login_pattern.search(line)
+                        if match:
+                            user = match.group(1)
+                            ip_address = match.group(2)
+                            failed_attempts[ip_address] += 1
+                            logging.info(
+                                f"Failed login attempt for user '{user}' from {ip_address}. Count: {failed_attempts[ip_address]}"
+                            )
 
-                elif invalid_user_match:
-                    ip_address = invalid_user_match.group(1)
-                    failed_attempts[ip_address] += 1
-                    logging.info(
-                        f"Invalid user login attempt from {ip_address}. Count: {failed_attempts[ip_address]}"
-                    )
+                    elif "Invalid user" in line:
+                        match = invalid_user_pattern.search(line)
+                        if match:
+                            user = match.group(1)
+                            ip_address = match.group(2)
+                            failed_attempts[ip_address] += 1
+                            logging.info(
+                                f"Invalid user '{user}' login attempt from {ip_address}. Count: {failed_attempts[ip_address]}"
+                            )
 
-                elif accepted_login_match:
-                    ip_address = accepted_login_match.group(1)
-                    # Reset failed attempts on successful login
-                    if ip_address in failed_attempts:
-                        del failed_attempts[ip_address]
-                    continue  # Successful login, no action needed
+                    elif "Accepted password" in line:
+                        match = accepted_login_pattern.search(line)
+                        if match:
+                            user = match.group(1)
+                            ip_address = match.group(2)
+                            # Reset failed attempts on successful login
+                            if ip_address in failed_attempts:
+                                del failed_attempts[ip_address]
+                            logging.info(
+                                f"Successful login for user '{user}' from {ip_address}"
+                            )
+                            continue  # Successful login, no action needed
 
                 # Check if IP should be blacklisted
                 if ip_address and should_blacklist_ip(
@@ -366,16 +376,19 @@ def update_sshd_config(blacklisted_ips):
         with open(SSHD_CONFIG_PATH, "r") as f:
             config_lines = f.readlines()
 
-        # Remove existing Match Address blocks for blacklisted IPs
+        # Remove existing Match Address blocks
         new_config_lines = []
         skip = False
         for line in config_lines:
             if line.strip().startswith("Match Address"):
                 skip = True
+                continue
+            if skip and line.startswith("    DenyUsers *"):
+                continue
+            if skip and not line.startswith(" "):
+                skip = False
             if not skip:
                 new_config_lines.append(line)
-            if skip and line.strip() == "":
-                skip = False  # End of Match block
 
         # Add new Match Address blocks
         for ip in blacklisted_ips:
@@ -395,12 +408,15 @@ def update_sshd_config(blacklisted_ips):
 def reload_ssh_service():
     """Reload the SSH service to apply configuration changes."""
     try:
-        # Use 'service ssh reload' or 'systemctl reload ssh'
-        result = call(["service", "ssh", "reload"])
-        if result == 0:
+        # Since we're using supervisord, send SIGHUP to sshd
+        sshd_pid_file = "/var/run/sshd.pid"
+        if os.path.exists(sshd_pid_file):
+            with open(sshd_pid_file, "r") as f:
+                sshd_pid = int(f.read().strip())
+            os.kill(sshd_pid, 1)  # Send SIGHUP to sshd
             logging.info("SSH service reloaded successfully.")
         else:
-            logging.error("Failed to reload SSH service.")
+            logging.error("sshd PID file not found.")
     except Exception as e:
         logging.error(f"Error reloading SSH service: {e}")
 

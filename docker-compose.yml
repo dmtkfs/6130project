@@ -11,8 +11,6 @@ services:
     ports:
       - "${HOST_SSH_PORT}:${CONTAINER_SSH_PORT}" # Map host port to container port
     volumes:
-      - /var/log/auth.log:/host_var_log/auth.log:ro
-      - /var/log/syslog:/host_var_log/syslog:ro
       - /var/log/ids_app:/var/log/ids_app
     restart: unless-stopped
     env_file:

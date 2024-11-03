@@ -59,8 +59,9 @@ EXPOSE ${CONTAINER_SSH_PORT}
 
 # Update sshd_config to allow ids_user and set the correct port
 RUN sed -i "s/#Port 22/Port ${CONTAINER_SSH_PORT}/" /etc/ssh/sshd_config && \
-    sed -i 's/#PermitRootLogin.*/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config && \
     sed -i 's/#PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config && \
+    sed -i 's/#LogLevel INFO/LogLevel VERBOSE/' /etc/ssh/sshd_config && \
     echo 'AllowUsers ids_user' >> /etc/ssh/sshd_config
 
 # Set user password
