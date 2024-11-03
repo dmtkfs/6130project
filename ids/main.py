@@ -8,7 +8,8 @@ import threading
 import re
 import shutil
 import os
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, call
+from collections import defaultdict
 
 # Configure logging to stdout
 logging.basicConfig(
@@ -16,6 +17,12 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s",
     stream=sys.stdout,  # Log to stdout
 )
+
+# Global Variables
+BLACKLIST_FILE = "/var/log/ids_app/blacklist.txt"
+FAILED_ATTEMPTS_THRESHOLD = 3
+SSH_LOG_PATH = "/var/log/auth.log"
+SSHD_CONFIG_PATH = "/etc/ssh/sshd_config"
 
 
 def monitor_processes():
@@ -254,93 +261,147 @@ def monitor_files(paths_to_watch):
 
 def monitor_ssh_attempts():
     """
-    Monitors SSH login attempts by tailing external log files.
-    Logs failed and successful login attempts, and detects possible brute-force attacks.
+    Monitors SSH login attempts by tailing log files.
+    Logs failed and successful login attempts, detects possible brute-force attacks,
+    and implements IP jail functionality.
     """
     try:
         logging.info("Monitoring SSH login attempts.")
-        ssh_log_paths = [
-            "/host_var_log/auth.log",
-            "/host_var_log/syslog",
-        ]  # External logs
 
-        for ssh_log_path in ssh_log_paths:
-            if not os.path.exists(ssh_log_path):
-                logging.error(f"SSH log file does not exist: {ssh_log_path}")
-                return
+        # Ensure the blacklist file exists
+        if not os.path.exists(BLACKLIST_FILE):
+            open(BLACKLIST_FILE, "w").close()
 
-        failed_attempts = {}
-        MAX_ATTEMPTS = 5  # Threshold for brute-force detection
+        # Load existing blacklisted IPs
+        blacklisted_ips = load_blacklisted_ips()
 
-        # Ensure 'tail' is available
-        if not shutil.which("tail"):
-            logging.error(
-                "'tail' command not found. Install 'coreutils' package in the Dockerfile."
-            )
-            return
+        failed_attempts = defaultdict(int)
+        MAX_ATTEMPTS = FAILED_ATTEMPTS_THRESHOLD
 
-        # Start tailing each log file in separate threads
-        for ssh_log_path in ssh_log_paths:
-            thread = threading.Thread(
-                target=tail_log_file,
-                args=(ssh_log_path, failed_attempts, MAX_ATTEMPTS),
-            )
-            thread.daemon = True
-            thread.start()
+        # Regular expressions to match SSH log entries
+        failed_login_pattern = re.compile(
+            r"Failed password for .* from (\d+\.\d+\.\d+\.\d+)"
+        )
+        invalid_user_pattern = re.compile(r"Invalid user .* from (\d+\.\d+\.\d+\.\d+)")
+        accepted_login_pattern = re.compile(
+            r"Accepted password for .* from (\d+\.\d+\.\d+\.\d+)"
+        )
 
-        # Keep the main thread alive
-        while True:
-            time.sleep(1)
+        # Open the SSH log file
+        with open(SSH_LOG_PATH, "r") as log_file:
+            # Seek to the end of the file
+            log_file.seek(0, os.SEEK_END)
+            while True:
+                line = log_file.readline()
+                if not line:
+                    time.sleep(0.1)
+                    continue
+
+                # Check for failed login attempts
+                failed_login_match = failed_login_pattern.search(line)
+                invalid_user_match = invalid_user_pattern.search(line)
+                accepted_login_match = accepted_login_pattern.search(line)
+
+                ip_address = None
+                if failed_login_match:
+                    ip_address = failed_login_match.group(1)
+                    failed_attempts[ip_address] += 1
+                    logging.info(
+                        f"Failed login attempt from {ip_address}. Count: {failed_attempts[ip_address]}"
+                    )
+
+                elif invalid_user_match:
+                    ip_address = invalid_user_match.group(1)
+                    failed_attempts[ip_address] += 1
+                    logging.info(
+                        f"Invalid user login attempt from {ip_address}. Count: {failed_attempts[ip_address]}"
+                    )
+
+                elif accepted_login_match:
+                    ip_address = accepted_login_match.group(1)
+                    # Reset failed attempts on successful login
+                    if ip_address in failed_attempts:
+                        del failed_attempts[ip_address]
+                    continue  # Successful login, no action needed
+
+                # Check if IP should be blacklisted
+                if ip_address and should_blacklist_ip(
+                    ip_address, failed_attempts, blacklisted_ips
+                ):
+                    blacklist_ip(ip_address, blacklisted_ips)
+                    update_sshd_config(blacklisted_ips)
+                    reload_ssh_service()
 
     except Exception as e:
         logging.error(f"Critical error in monitor_ssh_attempts: {e}")
 
 
-def tail_log_file(ssh_log_path, failed_attempts, MAX_ATTEMPTS):
-    """
-    Tails a single log file and processes SSH login attempts.
-    """
+def load_blacklisted_ips():
+    """Load blacklisted IPs from the blacklist file."""
+    with open(BLACKLIST_FILE, "r") as f:
+        return set(line.strip() for line in f if line.strip())
+
+
+def should_blacklist_ip(ip_address, failed_attempts, blacklisted_ips):
+    """Determine if an IP should be blacklisted."""
+    if ip_address in blacklisted_ips:
+        return False  # Already blacklisted
+    if failed_attempts[ip_address] >= FAILED_ATTEMPTS_THRESHOLD:
+        return True
+    return False
+
+
+def blacklist_ip(ip_address, blacklisted_ips):
+    """Add an IP to the blacklist file."""
+    blacklisted_ips.add(ip_address)
+    with open(BLACKLIST_FILE, "a") as f:
+        f.write(ip_address + "\n")
+    logging.warning(f"IP {ip_address} has been blacklisted.")
+
+
+def update_sshd_config(blacklisted_ips):
+    """Update sshd_config with blacklisted IPs."""
     try:
-        with Popen(
-            ["tail", "-F", ssh_log_path],
-            stdout=PIPE,
-            stderr=PIPE,
-            universal_newlines=True,
-        ) as p:
-            for line in p.stdout:
-                try:
-                    line = line.strip()
-                    if not line:
-                        continue
+        with open(SSHD_CONFIG_PATH, "r") as f:
+            config_lines = f.readlines()
 
-                    # Failed SSH login attempt
-                    if "Failed password for" in line:
-                        alert_message = f"Failed SSH login attempt detected: {line}"
-                        logging.warning(alert_message)
+        # Remove existing Match Address blocks for blacklisted IPs
+        new_config_lines = []
+        skip = False
+        for line in config_lines:
+            if line.strip().startswith("Match Address"):
+                skip = True
+            if not skip:
+                new_config_lines.append(line)
+            if skip and line.strip() == "":
+                skip = False  # End of Match block
 
-                        # Brute-force detection
-                        match = re.search(
-                            r"Failed password for .* from ([\d\.]+) port", line
-                        )
-                        if match:
-                            ip_address = match.group(1)
-                            failed_attempts[ip_address] = (
-                                failed_attempts.get(ip_address, 0) + 1
-                            )
-                            if failed_attempts[ip_address] >= MAX_ATTEMPTS:
-                                alert_message = f"Possible brute-force attack detected from {ip_address}"
-                                logging.warning(alert_message)
-                                # Reset counter or take action
-                                failed_attempts[ip_address] = 0
+        # Add new Match Address blocks
+        for ip in blacklisted_ips:
+            new_config_lines.append(f"\nMatch Address {ip}\n")
+            new_config_lines.append("    DenyUsers *\n")
 
-                    # Successful SSH login
-                    elif "Accepted password for" in line:
-                        alert_message = f"Successful SSH login detected: {line}"
-                        logging.info(alert_message)
-                except Exception as e:
-                    logging.error(f"Error processing SSH log line: {e}")
+        # Write back the updated config
+        with open(SSHD_CONFIG_PATH, "w") as f:
+            f.writelines(new_config_lines)
+
+        logging.info("sshd_config has been updated with blacklisted IPs.")
+
     except Exception as e:
-        logging.error(f"Critical error in tail_log_file ({ssh_log_path}): {e}")
+        logging.error(f"Failed to update sshd_config: {e}")
+
+
+def reload_ssh_service():
+    """Reload the SSH service to apply configuration changes."""
+    try:
+        # Use 'service ssh reload' or 'systemctl reload ssh'
+        result = call(["service", "ssh", "reload"])
+        if result == 0:
+            logging.info("SSH service reloaded successfully.")
+        else:
+            logging.error("Failed to reload SSH service.")
+    except Exception as e:
+        logging.error(f"Error reloading SSH service: {e}")
 
 
 def main():
