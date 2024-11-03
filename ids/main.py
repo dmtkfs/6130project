@@ -16,7 +16,7 @@ LOG_FILE_PATH = os.getenv("LOG_FILE_PATH", "/var/log/ids_app/ids.log")
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.FileHandler(LOG_FILE_PATH), logging.StreamHandler(sys.stdout)],
+    handlers=[logging.StreamHandler(sys.stdout)],
 )
 
 # Global Variables (load from environment)
@@ -38,6 +38,7 @@ def monitor_processes():
 
         WHITELISTED_PROCESSES = [
             "supervisord",
+            "supervisorctl",
             "python",
             "python3",
             "tail",
@@ -418,14 +419,16 @@ def update_sshd_config(blacklisted_ips):
 def reload_ssh_service():
     """Reload the SSH service to apply configuration changes."""
     try:
-        # Restart sshd via supervisord
-        result = call(["supervisorctl", "restart", "sshd"])
-        if result == 0:
-            logging.info("SSH service restarted successfully via supervisord.")
+        sshd_pid_file = "/var/run/sshd.pid"
+        if os.path.exists(sshd_pid_file):
+            with open(sshd_pid_file, "r") as f:
+                sshd_pid = int(f.read().strip())
+            os.kill(sshd_pid, signal.SIGHUP)
+            logging.info("SSH service reloaded successfully.")
         else:
-            logging.error("Failed to restart SSH service via supervisord.")
+            logging.error("sshd PID file not found.")
     except Exception as e:
-        logging.error(f"Error restarting SSH service via supervisord: {e}")
+        logging.error(f"Error reloading SSH service: {e}")
 
 
 def main():

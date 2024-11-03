@@ -1,6 +1,9 @@
 #!/bin/sh
 set -e
 
+# Ensure the necessary directories exist
+mkdir -p /var/run/sshd
+
 # Ensure the log directory and files are accessible
 mkdir -p /var/log/ids_app
 if [ ! -f /var/log/ids_app/ids.log ]; then
