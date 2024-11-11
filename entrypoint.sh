@@ -14,7 +14,7 @@ if [ ! -f /var/log/ids_app/blacklist.txt ]; then
 fi
 
 # Set permissions for the mounted directory and files
-chown -R root:ids_group /var/log/ids_app
+chown -R 1001:ids_group /var/log/ids_app
 chmod -R 775 /var/log/ids_app
 
 # Set the password for ids_user if provided
