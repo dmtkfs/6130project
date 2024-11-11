@@ -24,7 +24,7 @@ services:
       SSHD_CONFIG_PATH: /etc/ssh/sshd_config
     privileged: false
     command: |
-      sh -c "supervisord -c /etc/supervisord.conf"
+      sh -c "chown -R 1001:1001 /var/log/ids_app && chmod -R 775 /var/log/ids_app && supervisord -c /etc/supervisord.conf"
     cap_add:
       - NET_ADMIN
     cap_drop:
@@ -37,6 +37,8 @@ services:
         reservations:
           cpus: "0.25" # Reserves a quarter of a CPU
           memory: "256M" # Reserves 256MB of RAM
+    security_opt:
+      - no-new-privileges:true
     tmpfs:
       - /tmp # Uses tmpfs for /tmp to prevent writing to disk
       - /var/run/sshd # Mounts /var/run/sshd as tmpfs to allow sshd to create runtime files
