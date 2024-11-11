@@ -11,7 +11,7 @@ services:
     ports:
       - "${HOST_SSH_PORT}:${CONTAINER_SSH_PORT}" # Maps host port to container port
     volumes:
-      - ~/Documents/ids_app_data:/var/log/ids_app:rw # Ensures /var/log/ids_app is writable
+      - ~/Documents/ids_app_data:/var/log/ids_app
     restart: unless-stopped
     env_file:
       - .env
@@ -27,8 +27,6 @@ services:
       sh -c "chown -R 1001:1001 /var/log/ids_app && chmod -R 775 /var/log/ids_app && supervisord -c /etc/supervisord.conf"
     cap_add:
       - NET_ADMIN
-    cap_drop:
-      - ALL
     deploy:
       resources:
         limits:
@@ -39,6 +37,3 @@ services:
           memory: "256M" # Reserves 256MB of RAM
     security_opt:
       - no-new-privileges:true
-    tmpfs:
-      - /tmp # Uses tmpfs for /tmp to prevent writing to disk
-      - /var/run/sshd # Mounts /var/run/sshd as tmpfs to allow sshd to create runtime files

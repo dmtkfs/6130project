@@ -1,9 +1,6 @@
 #!/bin/sh
 set -e
 
-# Ensure the necessary directories exist
-mkdir -p /var/run/sshd
-
 # Ensure the log directory and files are accessible
 mkdir -p /var/log/ids_app
 if [ ! -f /var/log/ids_app/ids.log ]; then
@@ -14,8 +11,8 @@ if [ ! -f /var/log/ids_app/blacklist.txt ]; then
 fi
 
 # Set permissions for the mounted directory and files
-# chown -R 1001:ids_group /var/log/ids_app
-# chmod -R 775 /var/log/ids_app
+chown -R 1001:ids_group /var/log/ids_app
+chmod -R 775 /var/log/ids_app
 
 # Set the password for ids_user if provided
 if [ -n "$IDS_USER_PASSWORD" ]; then
