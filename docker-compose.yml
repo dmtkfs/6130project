@@ -11,7 +11,7 @@ services:
     ports:
       - "${HOST_SSH_PORT}:${CONTAINER_SSH_PORT}" # Maps host port to container port
     volumes:
-      - ~/Documents/ids_app_data:/var/log/ids_app # Ensures /var/log/ids_app is writable
+      - ~/Documents/ids_app_data:/var/log/ids_app:rw # Ensures /var/log/ids_app is writable
     restart: unless-stopped
     env_file:
       - .env
@@ -37,5 +37,6 @@ services:
         reservations:
           cpus: "0.25" # Reserves a quarter of a CPU
           memory: "256M" # Reserves 256MB of RAM
-    security_opt:
-      - no-new-privileges:true
+    tmpfs:
+      - /tmp # Uses tmpfs for /tmp to prevent writing to disk
+      - /var/run/sshd # Mounts /var/run/sshd as tmpfs to allow sshd to create runtime files
