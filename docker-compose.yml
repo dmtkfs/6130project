@@ -39,7 +39,6 @@ services:
           memory: "256M" # Reserves 256MB of RAM
     security_opt:
       - no-new-privileges:true
-    read_only: true # Makes the container's filesystem read-only
     tmpfs:
       - /tmp # Uses tmpfs for /tmp to prevent writing to disk
       - /var/run/sshd # Mounts /var/run/sshd as tmpfs to allow sshd to create runtime files
