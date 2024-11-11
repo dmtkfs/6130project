@@ -15,7 +15,8 @@ RUN apk update && \
     py3-watchdog \
     openssh \
     shadow \
-    bash
+    bash \
+    iptables
 
 # Create a group and user for the IDS application
 RUN addgroup -g 1001 ids_group && \
