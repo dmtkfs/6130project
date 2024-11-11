@@ -25,3 +25,5 @@ services:
     privileged: false
     command: |
       sh -c "chown -R 1001:1001 /var/log/ids_app && chmod -R 775 /var/log/ids_app && supervisord -c /etc/supervisord.conf"
+    cap_add:
+      - NET_ADMIN
