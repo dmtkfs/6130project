@@ -40,12 +40,12 @@ RUN chmod +x /entrypoint.sh
 
 # Setting ownership and permissions for /var/log/ids_app
 RUN mkdir -p /var/log/ids_app && \
-    chown -R 1001:1001 /var/log/ids_app && \
+    chown -R root:root /var/log/ids_app && \
     chmod -R 775 /var/log/ids_app
 
 # Making sure blacklist.txt is created with appropriate permissions on container start
 RUN touch /var/log/ids_app/blacklist.txt && \
-    chown 1001:1001 /var/log/ids_app/blacklist.txt && \
+    chown root:root /var/log/ids_app/blacklist.txt && \
     chmod 664 /var/log/ids_app/blacklist.txt
 
 # Expose SSH port
