@@ -31,10 +31,7 @@ fi
 ssh-keygen -A
 
 # Limit ICMP (ping) requests to 1 per second per IP (with burst of 5 pings)
-iptables -A INPUT -p icmp --icmp-type echo-request -i eth0 -m limit --limit 1/s --limit-burst 5 -j LOG --log-prefix "ICMP Flood: "
-
-# Start rsyslog to capture iptables logs
-rsyslogd
+iptables -A INPUT -p icmp --icmp-type echo-request -i eth0 -m limit --limit 1/s --limit-burst 5 -j ACCEPT
 
 # Start Supervisord
 exec /usr/bin/supervisord -c /etc/supervisord.conf
