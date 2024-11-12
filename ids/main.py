@@ -30,9 +30,12 @@ def monitor_processes():
     try:
         logging.info("Process monitoring started.")
         SENSITIVE_BINARIES = [
-            "/usr/bin/python3",
+            "/usr/bin/python3.12",
             "/bin/bash",
             "/bin/sh",
+            "/bin/ash",
+            "/bin/zsh",
+            "/bin/busybox",
             "/bin/sleep",
         ]
 
@@ -103,6 +106,19 @@ def monitor_processes():
                         )
                         logging.warning(alert_message)
 
+                        # Additional check for python3 commands
+                        if (
+                            exe_realpath == "/usr/bin/python3"
+                            and len(proc.info.get("cmdline", [])) > 1
+                        ):
+                            command_args = " ".join(proc.info.get("cmdline")[1:])
+                            if re.search(r"-c\s+'.+'", command_args) or re.search(
+                                r"--some-malicious-flag", command_args
+                            ):
+                                logging.warning(
+                                    f"Malicious python3 command detected: {process_info}"
+                                )
+
                     # Detect privilege escalation
                     uids = proc.info.get("uids")
                     if uids and uids.real != uids.effective:
@@ -163,6 +179,13 @@ def monitor_process_creations():
                         process_info = f"New process created: {process_name} (PID: {pid}, CMD: {cmdline})"
                         if process_name != "ids.py":
                             logging.info(process_info)
+
+                            # Additional check for sensitive binaries
+                            exe_realpath = os.path.realpath(proc.exe())
+                            if exe_realpath in SENSITIVE_BINARIES:
+                                alert_message = f"Sensitive binary execution detected via process creation: {process_info}"
+                                logging.warning(alert_message)
+
                     except psutil.NoSuchProcess:
                         continue
                     except Exception as e:
