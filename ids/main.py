@@ -14,16 +14,18 @@ import signal  # Added import signal
 # Configure logging
 LOG_FILE_PATH = os.getenv("LOG_FILE_PATH", "/var/log/ids_app/ids.log")
 logging.basicConfig(
-    level=logging.DEBUG,  # Temporarily set to DEBUG for detailed logs
+    level=logging.INFO,  # Set logging level to INFO
     format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.StreamHandler(sys.stdout)],
+    handlers=[logging.FileHandler(LOG_FILE_PATH), logging.StreamHandler(sys.stdout)],
 )
 
 # Global Variables (load from environment)
 BLACKLIST_FILE = os.getenv("BLACKLIST_FILE", "/var/log/ids_app/blacklist.txt")
 FAILED_ATTEMPTS_THRESHOLD = int(os.getenv("FAILED_ATTEMPTS_THRESHOLD", "3"))
 SSHD_CONFIG_PATH = os.getenv("SSHD_CONFIG_PATH", "/etc/ssh/sshd_config")
-SSH_LOG_PATH = os.getenv("SSH_LOG_PATH", "/var/log/ids_app/ids.log")  # Added definition
+SSH_LOG_PATH = os.getenv(
+    "SSH_LOG_PATH", "/var/log/ids_app/ids.log"
+)  # Defined SSH_LOG_PATH
 
 SENSITIVE_BINARIES = [
     "/usr/bin/python3.12",  # Ensure this is the correct path
@@ -116,7 +118,8 @@ def monitor_processes():
                         exe_realpath in SENSITIVE_BINARIES
                         or process_name == "python3.12"
                     ):
-                        logging.debug(f"Detected python3.12 process: {process_info}")
+                        # Log detection of python3.12 process
+                        logging.info(f"Detected python3.12 process: {process_info}")
                         # Special case for PID 1 (supervisord)
                         if proc.info["pid"] == 1:
                             continue  # Trust PID 1 as supervisord
@@ -240,8 +243,9 @@ def monitor_process_creations():
                                 exe_realpath in SENSITIVE_BINARIES
                                 or process_name == "python3.12"
                             ):
-                                logging.debug(
-                                    f"Detected new python3.12 process: {process_info}"
+                                # Log detection of new python3.12 process
+                                logging.info(
+                                    f"Detected python3.12 process: {process_info}"
                                 )
                                 # Special case for PID 1 (supervisord)
                                 if proc.pid == 1:
@@ -342,8 +346,8 @@ class FileMonitorHandler(FileSystemEventHandler):
                 event_src_path.startswith(excluded_dir)
                 for excluded_dir in self.normalized_excluded_dirs
             ):
-                # Lower log level for excluded paths to DEBUG to avoid spam
-                logging.debug(f"Ignoring event on excluded path: {event_src_path}")
+                # Lower log level for excluded paths to INFO to avoid spam
+                logging.info(f"Ignoring event on excluded path: {event_src_path}")
                 return
 
             if not event.is_directory:
