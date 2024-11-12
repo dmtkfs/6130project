@@ -24,6 +24,7 @@ services:
       FAILED_ATTEMPTS_THRESHOLD: ${FAILED_ATTEMPTS_THRESHOLD}
       SSHD_CONFIG_PATH: /etc/ssh/sshd_config
     privileged: false
+    pids_limit: 100 # Set the maximum number of processes to avoid resource exhaustion
     # Removed the command field to prevent overriding permissions set in Dockerfile and entrypoint.sh
     # command: |
     #   sh -c "chown -R 1001:1001 /var/log/ids_app && chmod -R 775 /var/log/ids_app && supervisord -c /etc/supervisord.conf"
