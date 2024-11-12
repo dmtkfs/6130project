@@ -44,6 +44,9 @@ RUN mkdir -p /var/log/ids_app && \
     chown root:ids_group /var/log/ids_app && \
     chmod 0750 /var/log/ids_app
 
+# Create the rsyslog configuration directory
+RUN mkdir -p /etc/rsyslog.d
+
 # Create and set permissions for ids.log
 RUN touch /var/log/ids_app/ids.log && \
     chown root:ids_group /var/log/ids_app/ids.log && \
