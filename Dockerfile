@@ -3,7 +3,7 @@
 # Use Alpine as the base image
 FROM alpine:latest
 
-# Install necessary tools and dependencies, including ACL utilities
+# Install necessary tools and dependencies
 RUN apk update && \
     apk add --no-cache \
     python3 \
@@ -16,8 +16,7 @@ RUN apk update && \
     openssh \
     shadow \
     bash \
-    iptables \
-    acl  # Added acl package for ACL management
+    iptables
 
 # Create a group and user for the IDS application
 RUN addgroup -g 1001 ids_group && \
@@ -47,13 +46,15 @@ RUN mkdir -p /var/log/ids_app && \
 # Create and set permissions for ids.log
 RUN touch /var/log/ids_app/ids.log && \
     chown root:ids_group /var/log/ids_app/ids.log && \
-    chmod 0640 /var/log/ids_app/ids.log && \
-    setfacl -m u:ids_user:rw /var/log/ids_app/ids.log  # Grant rw to ids_user via ACL
+    chmod 0640 /var/log/ids_app/ids.log
 
-# Ensuring blacklist.txt is created with appropriate permissions on container start
+# Ensure blacklist.txt is created with appropriate permissions on container start
 RUN touch /var/log/ids_app/blacklist.txt && \
     chown root:ids_group /var/log/ids_app/blacklist.txt && \
     chmod 664 /var/log/ids_app/blacklist.txt
+
+# Restrict Python execution to root only
+RUN chmod 700 /usr/bin/python3
 
 # Expose SSH port
 ARG CONTAINER_SSH_PORT
