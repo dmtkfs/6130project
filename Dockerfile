@@ -16,7 +16,8 @@ RUN apk update && \
     openssh \
     shadow \
     bash \
-    iptables
+    iptables \ 
+    rsyslog
 
 # Create a group and user for the IDS application
 RUN addgroup -g 1001 ids_group && \
@@ -73,3 +74,7 @@ RUN echo "ids_user:${IDS_USER_PASSWORD}" | chpasswd
 
 # Set Entrypoint
 ENTRYPOINT ["/entrypoint.sh"]
+
+# Configure rsyslog to log iptables messages to ids.log
+RUN echo ':msg, contains, "ICMP Flood:" /var/log/ids_app/ids.log' > /etc/rsyslog.d/iptables.conf && \
+    echo '& stop' >> /etc/rsyslog.d/iptables.conf
