@@ -40,3 +40,9 @@ services:
           memory: "256M" # Reserves 256MB of RAM
     security_opt:
       - no-new-privileges:true
+    healthcheck:
+      test: [ "CMD-SHELL", "pgrep sshd && pgrep -f 'python3 /ids_app/ids/main.py'" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
