@@ -34,10 +34,15 @@ services:
         limits:
           cpus: "0.5" # Limited to half a CPU
           memory: "512M" # Limited to 512MB of RAM
-          pids: 100 # Set PID limit within deploy
+          pids: 200 # Set PID limit within deploy
         reservations:
           cpus: "0.25" # Reserves a quarter of a CPU
           memory: "256M" # Reserves 256MB of RAM
+    ulimits:
+      nproc: 200 # Align with pids_limit
+      nofile:
+        soft: 1024
+        hard: 2048
     security_opt:
       - no-new-privileges:true
     healthcheck:
