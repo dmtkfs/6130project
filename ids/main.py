@@ -19,7 +19,6 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)],
 )
 
-
 # Global Variables (load from environment)
 BLACKLIST_FILE = os.getenv("BLACKLIST_FILE", "/var/log/ids_app/blacklist.txt")
 FAILED_ATTEMPTS_THRESHOLD = int(os.getenv("FAILED_ATTEMPTS_THRESHOLD", "3"))
@@ -43,7 +42,7 @@ WHITELISTED_PROCESSES = [
     "sshd",
     "ids.py",
     "bash",
-    "python3.12",  # Whitelist python3.12 to exclude the IDS application's process
+    # "python3.12",  # Removed to monitor all python3.12 executions
 ]
 
 CRITICAL_READ_PATHS = [
@@ -129,10 +128,14 @@ def monitor_processes():
                                     command_args = " ".join(
                                         proc.info.get("cmdline")[1:]
                                     )
-                                    if re.search(
-                                        r'-c\s+["\'].*["\']', command_args
-                                    ) or re.search(
-                                        r"--some-malicious-flag", command_args
+                                    malicious_flags = [
+                                        r'-c\s+["\'].*["\']',
+                                        r"--some-malicious-flag",
+                                        # Add more patterns as needed
+                                    ]
+                                    if any(
+                                        re.search(pattern, command_args)
+                                        for pattern in malicious_flags
                                     ):
                                         logging.warning(
                                             f"Malicious python3.12 command detected: {process_info}"
@@ -153,9 +156,14 @@ def monitor_processes():
                         ):
                             command_args = " ".join(proc.info.get("cmdline")[1:])
                             # Detect use of -c flag with single or double quotes
-                            if re.search(
-                                r'-c\s+["\'].*["\']', command_args
-                            ) or re.search(r"--some-malicious-flag", command_args):
+                            if any(
+                                re.search(pattern, command_args)
+                                for pattern in [
+                                    r'-c\s+["\'].*["\']',
+                                    r"--some-malicious-flag",
+                                    # Add more patterns as needed
+                                ]
+                            ):
                                 logging.warning(
                                     f"Malicious python3.12 command detected: {process_info}"
                                 )
@@ -238,10 +246,14 @@ def monitor_process_creations():
                                             and len(proc.cmdline()) > 1
                                         ):
                                             command_args = " ".join(proc.cmdline()[1:])
-                                            if re.search(
-                                                r'-c\s+["\'].*["\']', command_args
-                                            ) or re.search(
-                                                r"--some-malicious-flag", command_args
+                                            malicious_flags = [
+                                                r'-c\s+["\'].*["\']',
+                                                r"--some-malicious-flag",
+                                                # Add more patterns as needed
+                                            ]
+                                            if any(
+                                                re.search(pattern, command_args)
+                                                for pattern in malicious_flags
                                             ):
                                                 logging.warning(
                                                     f"Malicious python3.12 command detected via process creation: {process_info}"
@@ -262,10 +274,13 @@ def monitor_process_creations():
                                 ):
                                     command_args = " ".join(proc.cmdline()[1:])
                                     # Detect use of -c flag with single or double quotes
-                                    if re.search(
-                                        r'-c\s+["\'].*["\']', command_args
-                                    ) or re.search(
-                                        r"--some-malicious-flag", command_args
+                                    if any(
+                                        re.search(pattern, command_args)
+                                        for pattern in [
+                                            r'-c\s+["\'].*["\']',
+                                            r"--some-malicious-flag",
+                                            # Add more patterns as needed
+                                        ]
                                     ):
                                         logging.warning(
                                             f"Malicious python3.12 command detected via process creation: {process_info}"
