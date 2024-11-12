@@ -1,100 +1,71 @@
-# **Containerized IDS Application**
+Containerized IDS Application
 
-This repository contains a **Containerized Intrusion Detection System (IDS)** designed to monitor and defend against attacks within a container environment. The application is packaged and deployed using Docker, with a focus on logging suspicious activities inside the container.
+This repository contains a Containerized Intrusion Detection System (IDS) designed to monitor, detect, and log suspicious activities within a container environment. The application is packaged and deployed using Docker, with security features focusing on logging, resource constraints, and protection against potential attacks.
+Key Components
+1. IDS Application Capabilities
 
----
+    Process Monitoring:
+        Monitors processes running inside the container, detecting and logging sensitive binaries (e.g., /bin/bash, /bin/sh, /usr/bin/python3, /bin/sleep).
+        Tracks privilege escalation attempts, logging any suspicious instances of root access or elevated command executions.
 
-## **Key Components**
+    File System Monitoring:
+        Monitors changes in critical directories (e.g., /etc, /var, /home, and /tmp) for file creation, modification, and deletion.
+        Logs activities related to key system files, such as /etc/passwd and /etc/shadow, providing insight into any tampering attempts.
 
-### **1. Current Capabilities of the IDS Application**:
-- **Process Monitoring**:
-    - The IDS monitors **system processes** running inside the container.
-    - It detects and logs the execution of **sensitive binaries** (e.g., `/bin/bash`, `/bin/sh`, `/usr/bin/python3`, `/bin/sleep`).
-    - The IDS also monitors for **privilege escalation**, logging any instances where a user switches to `root` or runs commands with elevated privileges.
+    SSH Login Monitoring with Brute-Force Protection:
+        Logs both successful and failed SSH login attempts, capturing user and source IP details.
+        Implements an IP-based blacklisting mechanism, blocking IPs after a threshold of failed login attempts to mitigate brute-force attacks.
 
-- **File System Monitoring**:
-    - The IDS tracks file changes in critical directories such as `/etc`, `/var`, `/home`, and `/tmp`.
-    - It logs **file creation, modification, and deletion** events, focusing on important system files like `/etc/passwd` and `/etc/shadow`.
+    Centralized Logging:
+        All events, including process monitoring, file changes, and SSH attempts, are consolidated in a single log file inside the container (/var/log/ids_app/ids.log), enabling centralized and accessible logging.
 
-- **SSH Login Monitoring**:
-    - The IDS logs both **successful** and **failed SSH login attempts**.
-    - The logging includes details about the user who logged in and the source IP address of the login attempt.
+2. Container Deployment and Management
 
-- **Logging Events**:
-    - All events, including process creation, file system changes, and SSH login attempts, are logged to a central log file inside the container (`/var/log/ids_app/ids.log`).
+The IDS is deployed within a secure Docker container and managed through Docker Compose for streamlined orchestration. Key components of the deployment setup include:
 
----
+    Dockerfile:
+        Creates a lightweight container image based on Alpine Linux, installing necessary dependencies such as Python, Supervisor, and OpenSSH.
+        Configures the user environment, permissions, and log directory setup for the IDS application.
 
-### **2. Container Deployment**:
-The IDS is deployed using a **Dockerized environment** and managed through Docker Compose for ease of orchestration. Below are the key components involved in the deployment:
+    docker-compose.yml:
+        Defines container configurations, such as CPU and memory limits, port mappings, capabilities, and environment variables.
+        Ensures container resource usage is restricted (e.g., limited to 0.5 CPUs and 512MB RAM) to prevent resource exhaustion on the host.
 
-#### **Dockerfile**:
-- The Dockerfile is used to create the base image for the IDS container. It is based on **Alpine Linux**, a lightweight and secure Linux distribution.
-- Key setup steps include installing **Python**, **Supervisor**, and **OpenSSH**, along with setting up the necessary dependencies for the IDS application.
+    supervisord.conf:
+        Supervisor manages the IDS application and sshd, ensuring both services run continuously and restart automatically if they crash.
+        Consolidates logging for Supervisor activities in /var/log/ids_app, contributing to overall monitoring and stability.
 
-#### **docker-compose.yml**:
-- This file defines the Docker services and their configurations.
-- It is used to manage the container lifecycle, defining how the container is built and run.
-- The Compose setup allows easy scaling and redeployment of the IDS by automating the creation and management of the container.
+    entrypoint.sh:
+        Entry point script responsible for setting up and starting Supervisor, applying ICMP rate-limiting rules, and preparing log files with appropriate permissions.
+        Configures iptables to limit ICMP (ping) requests, reducing susceptibility to ICMP flood attacks.
 
-#### **supervisord.conf**:
-- **Supervisord** is responsible for managing the **IDS application** and **SSHD** (SSH daemon).
-- This configuration file tells Supervisor to run and monitor both the IDS app and SSHD services, ensuring they restart if they crash.
-- Supervisor is essential in keeping the IDS application running at all times and managing multiple processes within the container.
+    deploy.sh:
+        Automates container deployment, handling container build, stop, and restart tasks.
+        Simplifies redeployment by ensuring consistent environment setup with each new deployment.
 
-#### **entrypoint.sh**:
-- This is the **entry point script** for the container, responsible for launching Supervisor when the container starts.
-- It ensures that both SSH access and the IDS application are started and managed by Supervisor, making the container ready for use immediately after deployment.
+3. Security Features
 
-#### **deploy.sh**:
-- This script automates the deployment process by:
-    - Checking if a container is already running, stopping and removing it if necessary.
-    - Building a new Docker image based on the Dockerfile.
-    - Running the new container with the appropriate configurations.
-    - The **deploy.sh** script simplifies the redeployment process and helps in maintaining consistency across different environments.
+This deployment emphasizes security through both configuration and the IDS application’s monitoring functions. Here’s a summary of the defenses in place:
 
----
+    Configuration-Based Security:
+        Selective Capabilities: Only NET_ADMIN capability is granted, minimizing exposure to potentially risky privileges.
+        Resource Limits: CPU and memory constraints (0.5 CPUs and 512MB RAM) protect against resource-based denial-of-service (DoS) risks.
+        Filesystem Permissions: Central log directory (/var/log/ids_app) is accessible only to ids_user, preventing unauthorized log tampering.
+        ICMP Rate Limiting: iptables rules limit ICMP requests to one per second with a burst limit of five, reducing the likelihood of network-based DoS attacks.
+        SSH Access Control: SSH access is restricted to ids_user with root login disabled, reducing attack surface.
 
-### **3. Development Workflow**:
+    IDS Application Security Capabilities:
+        Process Monitoring: Tracks unauthorized binaries and privilege escalation attempts, logging suspicious root-level access.
+        File System Monitoring: Monitors and logs changes to critical files, alerting administrators to potential tampering.
+        SSH Brute-Force Defense: IP blacklisting implemented for SSH, blocking repeated failed login attempts to prevent brute-force access.
+        Centralized Logging: Consolidates logs in /var/log/ids_app/ids.log for consistent and streamlined incident tracking.
 
-#### **Git and GitHub for Version Control**:
-- The project uses **Git** for version control and **GitHub** for collaboration.
-- Development is primarily done on the Azure server, and changes are synced with the remote GitHub repository for backup and collaboration.
-- The `.env` file is used to manage sensitive information like configuration variables, which are not included in version control.
+4. Development Workflow
 
-#### **Docker Management**:
-- The container is built and managed using **Docker Compose** and deployed with the help of the **deploy.sh** script.
-- **Environment variables** are passed into the container during runtime via the `.env` file, keeping sensitive data like credentials secure.
+    Git and GitHub for Version Control:
+        Git is used for local version control, and GitHub is used for collaborative work and backup.
+        Sensitive configuration variables are managed through an .env file, which is excluded from version control to protect credentials.
 
-#### **Logging and Event Tracking**:
-- The IDS application logs key events such as:
-    - Process creation and execution of sensitive binaries.
-    - File system changes (creation, modification, and deletion of files).
-    - SSH login attempts (both successful and failed).
-- Logs are stored inside the container at `/var/log/ids_app/ids.log`, and can be accessed using standard log reading commands (e.g., `docker exec -it sec_app_container tail -f /var/log/ids_app/ids.log`).
-  
----
-
-### **4. Future Plans**:
-
-The next steps for the project include transitioning from an IDS to an IPS (Intrusion Prevention System) by actively defending against attacks:
-
-1. **Active Prevention (IPS)**:
-    - Implementing prevention mechanisms such as terminating unauthorized processes or actions detected by the IDS.
-    - For example, blocking file modifications or killing processes that are deemed suspicious.
-
-2. **SSH Brute-Force Defense**:
-    - Implementing a **jail system** to ban IP addresses that fail SSH login attempts multiple times (with a threshold of 3 attempts).
-    - Administrators will be able to view and manage banned IPs through this system.
-
-3. **Remote Log Storage**:
-    - The IDS logs will be stored remotely on the **Azure host**, preventing attackers from tampering with or deleting logs stored inside the container.
-
-4. **Continual Monitoring**:
-    - The IDS will continue to run as a **background service**, ensuring consistent logging and monitoring of events without manual intervention.
-
----
-
-### **Conclusion**:
-
-This document outlines the current state of the IDS, the deployment process, and future development plans. The IDS is currently capable of logging key events and monitoring system activity inside the container, while future enhancements aim to add active prevention capabilities and more robust security measures.
+    Docker Management:
+        Docker Compose is used for container orchestration, and deployment is automated with deploy.sh, enabling efficient deployment and maintenance.
+        Environment variables from the .env file are injected during container runtime, keeping credentials secure.
