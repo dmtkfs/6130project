@@ -25,40 +25,40 @@ FAILED_ATTEMPTS_THRESHOLD = int(os.getenv("FAILED_ATTEMPTS_THRESHOLD", "3"))
 SSH_LOG_PATH = LOG_FILE_PATH  # SSH logs are in the same file
 SSHD_CONFIG_PATH = os.getenv("SSHD_CONFIG_PATH", "/etc/ssh/sshd_config")
 
+SENSITIVE_BINARIES = [
+    "/usr/bin/python3.12",  # Updated to match the real path
+    "/bin/bash",
+    "/bin/busybox",  # Added to detect /bin/sh executions
+    "/bin/sleep",
+    "/usr/bin/perl",
+    "/usr/bin/ruby",
+    "/bin/zsh",
+]
+
+WHITELISTED_PROCESSES = [
+    "supervisord",
+    "supervisorctl",
+    "tail",
+    "sh",
+    "sshd",
+    "ids.py",
+    "bash",
+    # Removed "python3" to ensure python3.12 is monitored
+]
+
+CRITICAL_READ_PATHS = [
+    "/etc/passwd",
+    "/etc/shadow",
+    "/etc/hosts",
+    "/etc/group",
+    "/proc/1/ns/net",
+    "/proc/1/cmdline",
+]
+
 
 def monitor_processes():
     try:
         logging.info("Process monitoring started.")
-        SENSITIVE_BINARIES = [
-            "/usr/bin/python3.12",
-            "/bin/bash",
-            "/bin/sh",
-            "/bin/ash",
-            "/bin/zsh",
-            "/bin/busybox",
-            "/bin/sleep",
-        ]
-
-        WHITELISTED_PROCESSES = [
-            "supervisord",
-            "supervisorctl",
-            "python",
-            "python3",
-            "tail",
-            "sh",
-            "sshd",
-            "ids.py",
-            "bash",
-        ]
-
-        CRITICAL_READ_PATHS = [
-            "/etc/passwd",
-            "/etc/shadow",
-            "/etc/hosts",
-            "/etc/group",
-            "/proc/1/ns/net",
-            "/proc/1/cmdline",
-        ]
 
         # Normalize critical paths to their real paths
         CRITICAL_READ_PATHS_REALPATH = [
@@ -101,22 +101,35 @@ def monitor_processes():
                     exe = proc.info.get("exe") or ""
                     exe_realpath = os.path.realpath(exe)
                     if exe_realpath in SENSITIVE_BINARIES:
+                        # Check if the parent process is whitelisted
+                        try:
+                            parent_proc = proc.parent()
+                            parent_name = parent_proc.name().lower()
+                            if parent_name in [
+                                p.lower() for p in WHITELISTED_PROCESSES
+                            ]:
+                                # Legitimate execution; do not flag
+                                continue
+                        except (psutil.NoSuchProcess, AttributeError):
+                            pass  # Proceed to flag if parent cannot be determined
+
                         alert_message = (
                             f"Sensitive binary execution detected: {process_info}"
                         )
                         logging.warning(alert_message)
 
-                        # Additional check for python3 commands
+                        # Additional check for python3.12 commands with arguments
                         if (
-                            exe_realpath == "/usr/bin/python3"
+                            exe_realpath == "/usr/bin/python3.12"
                             and len(proc.info.get("cmdline", [])) > 1
                         ):
                             command_args = " ".join(proc.info.get("cmdline")[1:])
-                            if re.search(r"-c\s+'.+'", command_args) or re.search(
-                                r"--some-malicious-flag", command_args
-                            ):
+                            # Detect use of -c flag with single or double quotes
+                            if re.search(
+                                r'-c\s+["\'].*["\']', command_args
+                            ) or re.search(r"--some-malicious-flag", command_args):
                                 logging.warning(
-                                    f"Malicious python3 command detected: {process_info}"
+                                    f"Malicious python3.12 command detected: {process_info}"
                                 )
 
                     # Detect privilege escalation
@@ -163,16 +176,6 @@ def monitor_process_creations():
     Monitors for new process creations.
     Logs details of new processes, excluding the IDS script itself.
     """
-    SENSITIVE_BINARIES = [
-        "/usr/bin/python3.12",
-        "/bin/bash",
-        "/bin/sh",
-        "/bin/ash",
-        "/bin/zsh",
-        "/bin/busybox",
-        "/bin/sleep",
-    ]
-
     try:
         logging.info("Process creation monitoring started.")
         existing_pids = set(psutil.pids())
@@ -193,6 +196,18 @@ def monitor_process_creations():
                             # Additional check for sensitive binaries
                             exe_realpath = os.path.realpath(proc.exe())
                             if exe_realpath in SENSITIVE_BINARIES:
+                                # Check if the parent process is whitelisted
+                                try:
+                                    parent_proc = proc.parent()
+                                    parent_name = parent_proc.name().lower()
+                                    if parent_name in [
+                                        p.lower() for p in WHITELISTED_PROCESSES
+                                    ]:
+                                        # Legitimate execution; do not flag
+                                        continue
+                                except (psutil.NoSuchProcess, AttributeError):
+                                    pass  # Proceed to flag if parent cannot be determined
+
                                 alert_message = f"Sensitive binary execution detected via process creation: {process_info}"
                                 logging.warning(alert_message)
 
