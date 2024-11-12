@@ -14,23 +14,21 @@ import signal  # Added import signal
 # Configure logging
 LOG_FILE_PATH = os.getenv("LOG_FILE_PATH", "/var/log/ids_app/ids.log")
 logging.basicConfig(
-    level=logging.INFO,  # Set logging level to INFO
+    level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.FileHandler(LOG_FILE_PATH), logging.StreamHandler(sys.stdout)],
+    handlers=[logging.StreamHandler(sys.stdout)],
 )
 
 # Global Variables (load from environment)
 BLACKLIST_FILE = os.getenv("BLACKLIST_FILE", "/var/log/ids_app/blacklist.txt")
 FAILED_ATTEMPTS_THRESHOLD = int(os.getenv("FAILED_ATTEMPTS_THRESHOLD", "3"))
 SSHD_CONFIG_PATH = os.getenv("SSHD_CONFIG_PATH", "/etc/ssh/sshd_config")
-SSH_LOG_PATH = os.getenv(
-    "SSH_LOG_PATH", "/var/log/ids_app/ids.log"
-)  # Defined SSH_LOG_PATH
+SSH_LOG_PATH = os.getenv("SSH_LOG_PATH", "/var/log/ids_app/ids.log")
 
 SENSITIVE_BINARIES = [
-    "/usr/bin/python3.12",  # Ensure this is the correct path
+    "/usr/bin/python3.12",  # Updated to match the real path
     "/bin/bash",
-    "/bin/busybox",  # Detect /bin/sh executions
+    "/bin/busybox",  # Added to detect /bin/sh executions
     "/bin/sleep",
     "/usr/bin/perl",
     "/usr/bin/ruby",
@@ -114,12 +112,7 @@ def monitor_processes():
                     # Detect execution of sensitive binaries
                     exe = proc.info.get("exe") or ""
                     exe_realpath = os.path.realpath(exe)
-                    if (
-                        exe_realpath in SENSITIVE_BINARIES
-                        or process_name == "python3.12"
-                    ):
-                        # Log detection of python3.12 process
-                        logging.info(f"Detected python3.12 process: {process_info}")
+                    if exe_realpath in SENSITIVE_BINARIES:
                         # Special case for PID 1 (supervisord)
                         if proc.info["pid"] == 1:
                             continue  # Trust PID 1 as supervisord
@@ -136,7 +129,7 @@ def monitor_processes():
                                         proc.info.get("cmdline")[1:]
                                     )
                                     malicious_flags = [
-                                        r'-c\s+["\'](?:\\.|[^"\\\'])*["\']',
+                                        r'-c\s+["\'].*["\']',
                                         r"--some-malicious-flag",
                                         # Add more patterns as needed
                                     ]
@@ -162,14 +155,14 @@ def monitor_processes():
                             and len(proc.info.get("cmdline", [])) > 1
                         ):
                             command_args = " ".join(proc.info.get("cmdline")[1:])
-                            malicious_flags = [
-                                r'-c\s+["\'](?:\\.|[^"\\\'])*["\']',
-                                r"--some-malicious-flag",
-                                # Add more patterns as needed
-                            ]
+                            # Detect use of -c flag with single or double quotes
                             if any(
                                 re.search(pattern, command_args)
-                                for pattern in malicious_flags
+                                for pattern in [
+                                    r'-c\s+["\'].*["\']',
+                                    r"--some-malicious-flag",
+                                    # Add more patterns as needed
+                                ]
                             ):
                                 logging.warning(
                                     f"Malicious python3.12 command detected: {process_info}"
@@ -206,10 +199,10 @@ def monitor_processes():
                         # Process terminated or access denied to its file descriptors
                         continue
 
-                time.sleep(0.5)  # Reduced sleep time for better detection
+                time.sleep(1)
             except Exception as e:
                 logging.error(f"Error in process monitoring loop: {e}")
-                time.sleep(0.5)
+                time.sleep(1)
     except Exception as e:
         logging.error(f"Critical error in monitor_processes: {e}")
 
@@ -239,14 +232,7 @@ def monitor_process_creations():
                             # Additional check for sensitive binaries
                             exe = proc.exe()
                             exe_realpath = os.path.realpath(exe)
-                            if (
-                                exe_realpath in SENSITIVE_BINARIES
-                                or process_name == "python3.12"
-                            ):
-                                # Log detection of new python3.12 process
-                                logging.info(
-                                    f"Detected python3.12 process: {process_info}"
-                                )
+                            if exe_realpath in SENSITIVE_BINARIES:
                                 # Special case for PID 1 (supervisord)
                                 if proc.pid == 1:
                                     continue  # Trust PID 1 as supervisord
@@ -261,7 +247,7 @@ def monitor_process_creations():
                                         ):
                                             command_args = " ".join(proc.cmdline()[1:])
                                             malicious_flags = [
-                                                r'-c\s+["\'](?:\\.|[^"\\\'])*["\']',
+                                                r'-c\s+["\'].*["\']',
                                                 r"--some-malicious-flag",
                                                 # Add more patterns as needed
                                             ]
@@ -287,14 +273,14 @@ def monitor_process_creations():
                                     and len(proc.cmdline()) > 1
                                 ):
                                     command_args = " ".join(proc.cmdline()[1:])
-                                    malicious_flags = [
-                                        r'-c\s+["\'](?:\\.|[^"\\\'])*["\']',
-                                        r"--some-malicious-flag",
-                                        # Add more patterns as needed
-                                    ]
+                                    # Detect use of -c flag with single or double quotes
                                     if any(
                                         re.search(pattern, command_args)
-                                        for pattern in malicious_flags
+                                        for pattern in [
+                                            r'-c\s+["\'].*["\']',
+                                            r"--some-malicious-flag",
+                                            # Add more patterns as needed
+                                        ]
                                     ):
                                         logging.warning(
                                             f"Malicious python3.12 command detected via process creation: {process_info}"
@@ -305,10 +291,10 @@ def monitor_process_creations():
                     except Exception as e:
                         logging.error(f"Error accessing process {pid}: {e}")
                 existing_pids = current_pids
-                time.sleep(0.5)  # Reduced sleep time for better detection
+                time.sleep(1)
             except Exception as e:
                 logging.error(f"Error in process creation monitoring loop: {e}")
-                time.sleep(0.5)
+                time.sleep(1)
     except Exception as e:
         logging.error(f"Critical error in monitor_process_creations: {e}")
 
@@ -346,8 +332,8 @@ class FileMonitorHandler(FileSystemEventHandler):
                 event_src_path.startswith(excluded_dir)
                 for excluded_dir in self.normalized_excluded_dirs
             ):
-                # Lower log level for excluded paths to INFO to avoid spam
-                logging.info(f"Ignoring event on excluded path: {event_src_path}")
+                # Lower log level for excluded paths to DEBUG to avoid spam
+                logging.debug(f"Ignoring event on excluded path: {event_src_path}")
                 return
 
             if not event.is_directory:
