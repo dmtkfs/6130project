@@ -14,7 +14,7 @@ import signal  # Added import signal
 # Configure logging
 LOG_FILE_PATH = os.getenv("LOG_FILE_PATH", "/var/log/ids_app/ids.log")
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,  # Temporarily set to DEBUG for detailed logs
     format="%(asctime)s - %(levelname)s - %(message)s",
     handlers=[logging.StreamHandler(sys.stdout)],
 )
@@ -23,12 +23,12 @@ logging.basicConfig(
 BLACKLIST_FILE = os.getenv("BLACKLIST_FILE", "/var/log/ids_app/blacklist.txt")
 FAILED_ATTEMPTS_THRESHOLD = int(os.getenv("FAILED_ATTEMPTS_THRESHOLD", "3"))
 SSHD_CONFIG_PATH = os.getenv("SSHD_CONFIG_PATH", "/etc/ssh/sshd_config")
-SSH_LOG_PATH = os.getenv("SSH_LOG_PATH", "/var/log/ids_app/ids.log")
+SSH_LOG_PATH = os.getenv("SSH_LOG_PATH", "/var/log/ids_app/ids.log")  # Added definition
 
 SENSITIVE_BINARIES = [
-    "/usr/bin/python3.12",  # Updated to match the real path
+    "/usr/bin/python3.12",  # Ensure this is the correct path
     "/bin/bash",
-    "/bin/busybox",  # Added to detect /bin/sh executions
+    "/bin/busybox",  # Detect /bin/sh executions
     "/bin/sleep",
     "/usr/bin/perl",
     "/usr/bin/ruby",
@@ -112,7 +112,11 @@ def monitor_processes():
                     # Detect execution of sensitive binaries
                     exe = proc.info.get("exe") or ""
                     exe_realpath = os.path.realpath(exe)
-                    if exe_realpath in SENSITIVE_BINARIES:
+                    if (
+                        exe_realpath in SENSITIVE_BINARIES
+                        or process_name == "python3.12"
+                    ):
+                        logging.debug(f"Detected python3.12 process: {process_info}")
                         # Special case for PID 1 (supervisord)
                         if proc.info["pid"] == 1:
                             continue  # Trust PID 1 as supervisord
@@ -129,7 +133,7 @@ def monitor_processes():
                                         proc.info.get("cmdline")[1:]
                                     )
                                     malicious_flags = [
-                                        r'-c\s+["\'].*["\']',
+                                        r'-c\s+["\'](?:\\.|[^"\\\'])*["\']',
                                         r"--some-malicious-flag",
                                         # Add more patterns as needed
                                     ]
@@ -155,14 +159,14 @@ def monitor_processes():
                             and len(proc.info.get("cmdline", [])) > 1
                         ):
                             command_args = " ".join(proc.info.get("cmdline")[1:])
-                            # Detect use of -c flag with single or double quotes
+                            malicious_flags = [
+                                r'-c\s+["\'](?:\\.|[^"\\\'])*["\']',
+                                r"--some-malicious-flag",
+                                # Add more patterns as needed
+                            ]
                             if any(
                                 re.search(pattern, command_args)
-                                for pattern in [
-                                    r'-c\s+["\'].*["\']',
-                                    r"--some-malicious-flag",
-                                    # Add more patterns as needed
-                                ]
+                                for pattern in malicious_flags
                             ):
                                 logging.warning(
                                     f"Malicious python3.12 command detected: {process_info}"
@@ -199,10 +203,10 @@ def monitor_processes():
                         # Process terminated or access denied to its file descriptors
                         continue
 
-                time.sleep(1)
+                time.sleep(0.5)  # Reduced sleep time for better detection
             except Exception as e:
                 logging.error(f"Error in process monitoring loop: {e}")
-                time.sleep(1)
+                time.sleep(0.5)
     except Exception as e:
         logging.error(f"Critical error in monitor_processes: {e}")
 
@@ -232,7 +236,13 @@ def monitor_process_creations():
                             # Additional check for sensitive binaries
                             exe = proc.exe()
                             exe_realpath = os.path.realpath(exe)
-                            if exe_realpath in SENSITIVE_BINARIES:
+                            if (
+                                exe_realpath in SENSITIVE_BINARIES
+                                or process_name == "python3.12"
+                            ):
+                                logging.debug(
+                                    f"Detected new python3.12 process: {process_info}"
+                                )
                                 # Special case for PID 1 (supervisord)
                                 if proc.pid == 1:
                                     continue  # Trust PID 1 as supervisord
@@ -247,7 +257,7 @@ def monitor_process_creations():
                                         ):
                                             command_args = " ".join(proc.cmdline()[1:])
                                             malicious_flags = [
-                                                r'-c\s+["\'].*["\']',
+                                                r'-c\s+["\'](?:\\.|[^"\\\'])*["\']',
                                                 r"--some-malicious-flag",
                                                 # Add more patterns as needed
                                             ]
@@ -273,14 +283,14 @@ def monitor_process_creations():
                                     and len(proc.cmdline()) > 1
                                 ):
                                     command_args = " ".join(proc.cmdline()[1:])
-                                    # Detect use of -c flag with single or double quotes
+                                    malicious_flags = [
+                                        r'-c\s+["\'](?:\\.|[^"\\\'])*["\']',
+                                        r"--some-malicious-flag",
+                                        # Add more patterns as needed
+                                    ]
                                     if any(
                                         re.search(pattern, command_args)
-                                        for pattern in [
-                                            r'-c\s+["\'].*["\']',
-                                            r"--some-malicious-flag",
-                                            # Add more patterns as needed
-                                        ]
+                                        for pattern in malicious_flags
                                     ):
                                         logging.warning(
                                             f"Malicious python3.12 command detected via process creation: {process_info}"
@@ -291,10 +301,10 @@ def monitor_process_creations():
                     except Exception as e:
                         logging.error(f"Error accessing process {pid}: {e}")
                 existing_pids = current_pids
-                time.sleep(1)
+                time.sleep(0.5)  # Reduced sleep time for better detection
             except Exception as e:
                 logging.error(f"Error in process creation monitoring loop: {e}")
-                time.sleep(1)
+                time.sleep(0.5)
     except Exception as e:
         logging.error(f"Critical error in monitor_process_creations: {e}")
 
