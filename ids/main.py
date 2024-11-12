@@ -39,7 +39,6 @@ WHITELISTED_PROCESSES = [
     "supervisord",
     "supervisorctl",
     "tail",
-    "sh",
     "sshd",
     "ids.py",
     "bash",
