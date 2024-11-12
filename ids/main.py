@@ -163,6 +163,16 @@ def monitor_process_creations():
     Monitors for new process creations.
     Logs details of new processes, excluding the IDS script itself.
     """
+    SENSITIVE_BINARIES = [
+        "/usr/bin/python3.12",
+        "/bin/bash",
+        "/bin/sh",
+        "/bin/ash",
+        "/bin/zsh",
+        "/bin/busybox",
+        "/bin/sleep",
+    ]
+
     try:
         logging.info("Process creation monitoring started.")
         existing_pids = set(psutil.pids())
