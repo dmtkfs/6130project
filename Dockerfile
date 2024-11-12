@@ -3,7 +3,7 @@
 # Use Alpine as the base image
 FROM alpine:latest
 
-# Install necessary tools and dependencies
+# Install necessary tools and dependencies, including ACL utilities
 RUN apk update && \
     apk add --no-cache \
     python3 \
@@ -16,7 +16,8 @@ RUN apk update && \
     openssh \
     shadow \
     bash \
-    iptables
+    iptables \
+    acl  # Added acl package for ACL management
 
 # Create a group and user for the IDS application
 RUN addgroup -g 1001 ids_group && \
@@ -40,12 +41,18 @@ RUN chmod +x /entrypoint.sh
 
 # Setting ownership and permissions for /var/log/ids_app
 RUN mkdir -p /var/log/ids_app && \
-    chown -R 1001:1001 /var/log/ids_app && \
-    chmod -R 775 /var/log/ids_app
+    chown root:ids_group /var/log/ids_app && \
+    chmod 0750 /var/log/ids_app
 
-# Making sure blacklist.txt is created with appropriate permissions on container start
+# Create and set permissions for ids.log
+RUN touch /var/log/ids_app/ids.log && \
+    chown root:ids_group /var/log/ids_app/ids.log && \
+    chmod 0640 /var/log/ids_app/ids.log && \
+    setfacl -m u:ids_user:rw /var/log/ids_app/ids.log  # Grant rw to ids_user via ACL
+
+# Ensuring blacklist.txt is created with appropriate permissions on container start
 RUN touch /var/log/ids_app/blacklist.txt && \
-    chown 1001:1001 /var/log/ids_app/blacklist.txt && \
+    chown root:ids_group /var/log/ids_app/blacklist.txt && \
     chmod 664 /var/log/ids_app/blacklist.txt
 
 # Expose SSH port
