@@ -19,10 +19,12 @@ logging.basicConfig(
     handlers=[logging.StreamHandler(sys.stdout)],
 )
 
+
 # Global Variables (load from environment)
 BLACKLIST_FILE = os.getenv("BLACKLIST_FILE", "/var/log/ids_app/blacklist.txt")
 FAILED_ATTEMPTS_THRESHOLD = int(os.getenv("FAILED_ATTEMPTS_THRESHOLD", "3"))
 SSHD_CONFIG_PATH = os.getenv("SSHD_CONFIG_PATH", "/etc/ssh/sshd_config")
+SSH_LOG_PATH = os.getenv("SSH_LOG_PATH", "/var/log/ids_app/ids.log")
 
 SENSITIVE_BINARIES = [
     "/usr/bin/python3.12",  # Updated to match the real path
