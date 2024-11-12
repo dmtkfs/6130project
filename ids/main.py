@@ -22,7 +22,6 @@ logging.basicConfig(
 # Global Variables (load from environment)
 BLACKLIST_FILE = os.getenv("BLACKLIST_FILE", "/var/log/ids_app/blacklist.txt")
 FAILED_ATTEMPTS_THRESHOLD = int(os.getenv("FAILED_ATTEMPTS_THRESHOLD", "3"))
-SSH_LOG_PATH = LOG_FILE_PATH  # SSH logs are in the same file
 SSHD_CONFIG_PATH = os.getenv("SSHD_CONFIG_PATH", "/etc/ssh/sshd_config")
 
 SENSITIVE_BINARIES = [
@@ -42,7 +41,7 @@ WHITELISTED_PROCESSES = [
     "sshd",
     "ids.py",
     "bash",
-    # Removed "python3" to ensure python3.12 is monitored
+    "python3.12",  # Whitelist python3.12 to exclude the IDS application's process
 ]
 
 CRITICAL_READ_PATHS = [
@@ -99,6 +98,11 @@ def monitor_processes():
                         and process_name
                         not in [p.lower() for p in WHITELISTED_PROCESSES]
                     ):
+                        # Exclude the IDS application's own process
+                        cmdline = proc.info.get("cmdline", [])
+                        if "/ids_app/ids/main.py" in cmdline:
+                            continue  # Do not flag the IDS application’s own process
+
                         alert_message = (
                             f"Suspicious root process detected: {process_info}"
                         )
@@ -115,28 +119,44 @@ def monitor_processes():
                         try:
                             parent_proc = proc.parent()
                             if is_parent_whitelisted(parent_proc):
-                                continue  # Legitimate execution
+                                # Even if whitelisted, check for malicious commands
+                                if (
+                                    exe_realpath == "/usr/bin/python3.12"
+                                    and len(proc.info.get("cmdline", [])) > 1
+                                ):
+                                    command_args = " ".join(
+                                        proc.info.get("cmdline")[1:]
+                                    )
+                                    if re.search(
+                                        r'-c\s+["\'].*["\']', command_args
+                                    ) or re.search(
+                                        r"--some-malicious-flag", command_args
+                                    ):
+                                        logging.warning(
+                                            f"Malicious python3.12 command detected: {process_info}"
+                                        )
+                                continue  # Legitimate execution, skip flagging
                         except (psutil.NoSuchProcess, AttributeError):
                             pass  # Proceed to flag if parent cannot be determined
 
                         # Flag the sensitive binary execution
                         logging.warning(
-                            f"Sensitive binary execution detected: Process: {process_name} (PID: {proc.info['pid']}, User: {proc.info.get('username')}, CMD: {' '.join(proc.info.get('cmdline') or [])})"
+                            f"Sensitive binary execution detected: {process_info}"
                         )
 
-                    # Additional check for python3.12 commands with arguments
-                    if (
-                        exe_realpath == "/usr/bin/python3.12"
-                        and len(proc.info.get("cmdline", [])) > 1
-                    ):
-                        command_args = " ".join(proc.info.get("cmdline")[1:])
-                        # Detect use of -c flag with single or double quotes
-                        if re.search(r'-c\s+["\'].*["\']', command_args) or re.search(
-                            r"--some-malicious-flag", command_args
+                        # Additional check for python3.12 commands with arguments
+                        if (
+                            exe_realpath == "/usr/bin/python3.12"
+                            and len(proc.info.get("cmdline", [])) > 1
                         ):
-                            logging.warning(
-                                f"Malicious python3.12 command detected: Process: {process_name} (PID: {proc.info['pid']}, User: {proc.info.get('username')}, CMD: {' '.join(proc.info.get('cmdline') or [])})"
-                            )
+                            command_args = " ".join(proc.info.get("cmdline")[1:])
+                            # Detect use of -c flag with single or double quotes
+                            if re.search(
+                                r'-c\s+["\'].*["\']', command_args
+                            ) or re.search(r"--some-malicious-flag", command_args):
+                                logging.warning(
+                                    f"Malicious python3.12 command detected: {process_info}"
+                                )
 
                     # Detect privilege escalation
                     uids = proc.info.get("uids")
@@ -193,23 +213,38 @@ def monitor_process_creations():
                 for pid in new_pids:
                     try:
                         proc = psutil.Process(pid)
-                        process_name = proc.name()
+                        process_name = proc.name().lower()
                         cmdline = " ".join(proc.cmdline())
                         process_info = f"New process created: {process_name} (PID: {pid}, CMD: {cmdline})"
                         if process_name != "ids.py":
                             logging.info(process_info)
 
                             # Additional check for sensitive binaries
-                            exe_realpath = os.path.realpath(proc.exe())
+                            exe = proc.exe()
+                            exe_realpath = os.path.realpath(exe)
                             if exe_realpath in SENSITIVE_BINARIES:
                                 # Special case for PID 1 (supervisord)
-                                if proc.info["pid"] == 1:
+                                if proc.pid == 1:
                                     continue  # Trust PID 1 as supervisord
 
                                 try:
                                     parent_proc = proc.parent()
                                     if is_parent_whitelisted(parent_proc):
-                                        continue  # Legitimate execution
+                                        # Even if whitelisted, check for malicious commands
+                                        if (
+                                            exe_realpath == "/usr/bin/python3.12"
+                                            and len(proc.cmdline()) > 1
+                                        ):
+                                            command_args = " ".join(proc.cmdline()[1:])
+                                            if re.search(
+                                                r'-c\s+["\'].*["\']', command_args
+                                            ) or re.search(
+                                                r"--some-malicious-flag", command_args
+                                            ):
+                                                logging.warning(
+                                                    f"Malicious python3.12 command detected via process creation: {process_info}"
+                                                )
+                                        continue  # Legitimate execution, skip flagging
                                 except (psutil.NoSuchProcess, AttributeError):
                                     pass  # Proceed to flag if parent cannot be determined
 
@@ -217,6 +252,22 @@ def monitor_process_creations():
                                 logging.warning(
                                     f"Sensitive binary execution detected via process creation: {process_info}"
                                 )
+
+                                # Additional check for python3.12 commands with arguments
+                                if (
+                                    exe_realpath == "/usr/bin/python3.12"
+                                    and len(proc.cmdline()) > 1
+                                ):
+                                    command_args = " ".join(proc.cmdline()[1:])
+                                    # Detect use of -c flag with single or double quotes
+                                    if re.search(
+                                        r'-c\s+["\'].*["\']', command_args
+                                    ) or re.search(
+                                        r"--some-malicious-flag", command_args
+                                    ):
+                                        logging.warning(
+                                            f"Malicious python3.12 command detected via process creation: {process_info}"
+                                        )
 
                     except psutil.NoSuchProcess:
                         continue
