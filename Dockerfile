@@ -46,7 +46,7 @@ RUN mkdir -p /var/log/ids_app && \
 # Create and set permissions for ids.log
 RUN touch /var/log/ids_app/ids.log && \
     chown root:root /var/log/ids_app/ids.log && \
-    chmod 0640 /var/log/ids_app/ids.log
+    chmod 0600 /var/log/ids_app/ids.log
 
 # Ensure blacklist.txt is created with appropriate permissions on container start
 RUN touch /var/log/ids_app/blacklist.txt && \
