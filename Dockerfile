@@ -40,7 +40,7 @@ RUN chmod +x /entrypoint.sh
 
 # Setting ownership and permissions for /var/log/ids_app
 RUN mkdir -p /var/log/ids_app && \
-    chown root:root /var/log/ids_app && \
+    chown root:ids_group /var/log/ids_app && \
     chmod 0750 /var/log/ids_app
 
 # Create and set permissions for ids.log
